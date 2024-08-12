@@ -1,33 +1,39 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import Container from './components/Container'
+import Navbar from './components/Navbar'
+import Footer from './components/Footer'
+import { Link } from 'react-router-dom'
 
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
     <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <Container>
+        <Navbar/>
+        <div className='flex-1 w-screen flex flex-row justify-evenly py-5 gap-6'>
+          
+          <div className='h-auto basis-[15%] flex flex-col items-center py-3 border-r-2 border-white border-opacity-60 text-white px-4 gap-2'>
+            <Link to="/play" className='w-full h-[30px] rounded-md text-left hover:bg-white hover:bg-opacity-40 transition-all duration-300 px-4 leading-[30px]'>
+              PLAY
+            </Link>
+            <button className='w-full h-[30px] rounded-md text-left hover:bg-white hover:bg-opacity-40 transition-all duration-300 px-4 leading-[30px]'>
+              MENU 2
+            </button>
+            <button className='w-full h-[30px] rounded-md text-left hover:bg-white hover:bg-opacity-40 transition-all duration-300 px-4 leading-[30px]'>
+              MENU 3
+            </button>
+          </div>
+
+          <div className='h-auto basis-[50%] flex flex-col items-center py-3 rounded-md text-white'>
+            <div className='text-3xl mt-5'>TEST YOUR TYPING AND REACTION SKILLS!</div>
+          </div>
+
+          <div className='h-auto basis-[27%] flex flex-col items-center py-3 rounded-md text-white glass-effect'>
+            LEADERBOARDS
+          </div>
+        </div>
+        <Footer/>
+      </Container>
     </>
   )
 }
