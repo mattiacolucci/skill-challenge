@@ -1,6 +1,7 @@
 const Container = (props)=>{
     return(
-        <div className="w-screen min-h-screen bg-bg-color overflow-x-hidden font-default flex flex-col items-center justify-start text-white">
+        <div className={"w-screen bg-bg-color font-default flex flex-col flex-shrink-0 [&>*]:flex-none items-center justify-start text-white "+((props.overflowHidden)?"h-[100vh] overflow-hidden":"min-h-screen overflow-x-hidden")}>
+            {/*[&>*] style, apply a style to each child of the container */}
             {props.children}
         </div>
     )

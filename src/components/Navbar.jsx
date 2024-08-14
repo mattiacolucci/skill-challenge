@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 const Navbar=()=>{
     return(
-        <div className="w-screen h-[45px] border-b-2 border-b-white flex items-center px-3 bg-blue-950 bg-opacity-30 gap-4">
+        <div className="w-screen h-[8vh] border-b-2 border-b-white flex items-center px-3 bg-blue-950 bg-opacity-30 gap-4">
             <Link className="text-lg text-white select-none" to="/">SKILL CHALLENGE</Link>
             <div className="ml-auto flex items-center h-[30px] gap-3 bg-white bg-opacity-30 px-3 rounded-md">
                 <div className="text-blue-700 text-base">
