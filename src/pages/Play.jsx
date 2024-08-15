@@ -84,7 +84,7 @@ const Play=()=>{
                     {selectionState==0 &&<>
                         <div className="text-sm font-navbar font-medium">Select the skill which you want to play</div>
                         <div className="w-full flex-1 flex flex-row overflow-hidden">
-                            <div className={"flex gap-4 items-center border-r-2 border-white border-opacity-50 pl-3 overflow-x-auto overflow-y-hidden "
+                            <div className={"flex gap-4 items-center pl-3 overflow-x-auto overflow-y-hidden "
                             +((selectedSkill!=-1)?"w-[75%]":"w-[100%]")}>   {/*if none skill has been selected width is 100%, else 75%*/}
                                 {skills.map((skill,index)=>{
                                     return(
@@ -99,7 +99,7 @@ const Play=()=>{
                                 })}
                             </div>
                             {//if a skill has been selected, display its description
-                            selectedSkill!=-1 && <div className={"flex flex-col items-center p-3 px-5 gap-2 "+((selectedSkill!=-1)?"flex-1":"w-0")}>
+                            selectedSkill!=-1 && <div className={"flex flex-col items-center p-3 px-5 gap-2 border-l-2 border-white border-opacity-50 "+((selectedSkill!=-1)?"flex-1":"w-0")}>
                                 <div className="text-large">SKILL DESCRIPTION</div>
                                 <div className="text-base text-justify font-navbar font-medium line-clamp-[6]" title={skills[selectedSkill].description}>{skills[selectedSkill].description}</div>
                             </div>}
@@ -123,9 +123,9 @@ const Play=()=>{
                             {selectedSkill==0 && //parameters for skill 1
                             <>
                             <div className="w-[350px] flex flex-row gap-4 items-center">
-                                <div className="text-lg font-navbar font-semibold">Number of words <span className="text-xs">(1-20)</span></div>
-                                <input type="number" className="ml-auto text-base px-3 py-1 border-0 border-b-2 font-navbar border-white outline-none bg-white bg-opacity-30" min={1} max={20}
-                                onChange={(e)=>updateParameter(0,1,20,e.target.value)} value={skillsParameters[0]}/>
+                                <div className="text-lg font-navbar font-semibold">Number of words <span className="text-xs">(1-15)</span></div>
+                                <input type="number" className="ml-auto text-base px-3 py-1 border-0 border-b-2 font-navbar border-white outline-none bg-white bg-opacity-30" min={1} max={15}
+                                onChange={(e)=>updateParameter(0,1,15,e.target.value)} value={skillsParameters[0]}/>
                             </div>
                             <div className="w-[350px] flex flex-row gap-4 items-center">
                                 <div className="text-lg font-navbar font-semibold">Number of chars per word <span className="text-xs">(2-17)</span></div>
@@ -149,15 +149,18 @@ const Play=()=>{
                     </>}
                 </div>
 
-                <div className={"w-full flex flex-col px-6 py-3 border-b-2 border-white border-opacity-70 shadow-none overflow-hidden gap-4 transition-all duration-500 "+((selectionState==2)?"flex-1":"h-min")}>
+                <div className={"relative w-full flex flex-col px-6 py-3 border-b-2 border-white border-opacity-70 shadow-none overflow-hidden gap-4 transition-all duration-500 z-[1] "+((selectionState==2)?"flex-1":"h-min")}>
                     <div className={"text-white "+((selectionState==2)?"text-2xl":"text-lg")}>PLAY</div>
                     {selectionState==2 &&  //if skills parameters are selcted, display play section
                     <>
-                        <div className="text-sm font-navbar font-medium">
-                            Be ready to play!
+                        <div className="w-[80%] text-sm font-navbar font-medium text-justify whitespace-pre-line">
+                            <span className="text-base font-semibold border-l-2 pl-2 border-white border-opacity-80">INSTRUCTIONS TO PLAY</span><br/><br/>
+                            {skills[selectedSkill].playInstructions}
                         </div>
 
-                        <div className="w-full flex mt-auto">
+                        <i className={skills[selectedSkill].icon+" text-[300px] text-white text-opacity-15 absolute z-0 right-4"}></i>
+
+                        <div className="w-full flex mt-auto z-[1]">
                             <button className="text-base px-3 py-2 bg-blue-700 self-end rounded-sm" onClick={backState}>⮘ BACK</button>
                             <button className="text-base px-3 py-2 bg-blue-700 self-end rounded-sm ml-auto" onClick={goPlayScreen}>PLAY ➣</button>
                         </div>
@@ -167,7 +170,7 @@ const Play=()=>{
             
 
             {/*PLAY SCREEN*/}
-            <div className="relative h-[100vh] w-screen flex flex-col items-center justify-center overflow-hidden gap-5" ref={playScreenRef}>
+            <div className={(selectionState!=4)?"relative h-[100vh] w-screen flex flex-col items-center justify-center overflow-hidden gap-5":"relative h-[200vh]"} ref={playScreenRef}>
                 
                 {selectionState==3 && <div className="absolute text-7xl text-white text-opacity-50" ref={playCountDownRef}>READY?</div>}
 
