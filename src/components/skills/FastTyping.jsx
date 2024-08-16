@@ -6,7 +6,7 @@ const FastTyping=(props)=>{
     //user settings
     const language="IT";
     const personalBestSingleWord=1.000;  //personal best single word in sec
-    const personalBestTotTime=3.000;   //personal best tot time in sec
+    const personalBestTotTime=10.000;   //personal best tot time in sec
     const personalBestAvgTime=1.200  //personal best avg time in sec
 
     //national bests
@@ -88,7 +88,7 @@ const FastTyping=(props)=>{
                 //the word is correct so we can go over with the next word
                 const currentTime=chronometerRef.current.getTime();
                 const wordTypeTime=(currentTime-chronoTimeLastWord);
-                var words=wordsToWrite;
+                var words=structuredClone(wordsToWrite);
                 words[currentWordToWrite]["status"]="correct";
                 words[currentWordToWrite]["time"]=(wordTypeTime/1000);
 
@@ -110,11 +110,12 @@ const FastTyping=(props)=>{
                     chronometerRef.current.startAndStop();
 
                     const totalTime=chronometerRef.current.getTime()/1000;
-                    const sortedWordsPerTime=wordsToWrite.sort(function(a, b) {
-                        return a.time < b.time;
+                    var wordsCopy=structuredClone(words);
+                    const sortedWordsPerTime=wordsCopy.sort(function(a, b) {
+                        return a.time - b.time;
                     });
                     const fastestWord={word:sortedWordsPerTime[0].word,time:sortedWordsPerTime[0].time};
-                    const times=wordsToWrite.map((w)=>w.time);
+                    const times=wordsCopy.map((w)=>w.time);
                     const avgTime=times.reduce((a, b) => a + b, 0)/times.length;
                     const res={
                         totalTime:totalTime,distanceTotTimeFromPB:totalTime-personalBestTotTime,
@@ -125,6 +126,7 @@ const FastTyping=(props)=>{
                         distanceFastestWordFromNR:fastestWord.time-nationalBestSingleWord, distanceFastestWordFromWR: fastestWord.time-worldBestSingleWord
                     };
 
+                    console.log(wordsCopy);
                     setResults(res);
 
                     //disable input
@@ -203,23 +205,23 @@ const FastTyping=(props)=>{
 
             {gameEnded && <div className="w-screen h-[100vh] bg-[#0c0b1f] text-white font-navbar font-semibold flex flex-col gap-5" ref={resultsRef}>
                 <div className="font-default text-3xl self-center mt-5">RESULTS</div>
-                <div className="h-min w-screen flex flex-row items-center justify-around">
-                    <div className="h-full w-[450px] bg-white bg-opacity-10 rounded-md px-3 py-1">
+                <div className="h-min w-screen flex flex-row items-center">
+                    <div className="h-full w-[450px] flex flex-col gap-1 bg-white bg-opacity-10 rounded-md px-3 py-1 origin-center ml-[calc(100vw/2-225px)] flex-none">
 
                         <div className="w-full border-b-2 border-white flex flex-row p-2 pb-4 items-center">
-                            <div className="h-full flex flex-col basis-[50%]">
+                            <div className="flex flex-col basis-[50%] gap-1">
                                 <div className="text-xs font-normal">TOTAL TIME</div>
                                 <div className="text-xl self-center">{results.totalTime.toFixed(3)+"s"}</div>
                             </div>
                             <div className="h-full flex flex-col basis-[50%] items-center border-l-2 border-white border-opacity-30 px-3">
-                                <div className="flex flex-row justify-center items-center gap-2">
+                                <div className="w-full flex flex-row justify-center items-center gap-2">
                                     <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] bg-blueOverBg bg-opacity-50 rounded-sm" title="Personal Best">PB</div>
                                     <div className="text-base">{personalBestTotTime.toFixed(3)+"s"}</div>
                                     <div className={"text-[10px] "+((results.distanceTotTimeFromPB>0)?"text-yellow-gold":"text-mainGreen")}>
                                         {"("+((results.distanceTotTimeFromPB>0)?"+":"")+results.distanceTotTimeFromPB.toFixed(3)+"s)"}
                                     </div>
                                 </div>
-                                <div className="flex flex-row justify-center items-center gap-2">
+                                <div className="w-full flex flex-row justify-center items-center gap-2">
                                     <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] bg-yellow-gold bg-opacity-50 rounded-sm" title="National Record">NR</div>
                                     <div className="text-base">{nationalBestTotTime.toFixed(3)+"s"}</div>
                                     <div className={"text-[10px] "+((results.distanceTotTimeFromNR>0)?"text-yellow-gold":"text-mainGreen")}>
@@ -237,7 +239,7 @@ const FastTyping=(props)=>{
                         </div>
 
                         <div className="w-full border-b-2 border-white flex flex-row p-2 pb-4 items-center">
-                            <div className="h-full flex flex-col basis-[50%]">
+                            <div className="flex flex-col basis-[50%] gap-1">
                                 <div className="text-xs font-normal">AVG TIME</div>
                                 <div className="text-xl self-center">{results.avgTime.toFixed(3)+"s"}</div>
                             </div>
@@ -267,7 +269,7 @@ const FastTyping=(props)=>{
                         </div>
 
                         <div className="w-full flex flex-row p-2 pb-4 items-center">
-                            <div className="h-full flex flex-col basis-[50%]">
+                            <div className="flex flex-col basis-[50%] gap-1">
                                 <div className="text-xs font-normal">FASTEST WORD</div>
                                 <div className="text-xl self-center">{results.fastestWord.time.toFixed(3)+"s"}</div>
                             </div>
@@ -296,6 +298,22 @@ const FastTyping=(props)=>{
                             </div>
                         </div>
                     </div>
+
+                    {/*Records badges*/}
+                    <div className="h-full flex flex-col justify-around">
+                        <div className={"text-base w-[250px] text-nowrap px-3 py-[6px] text-black WR-clip-path "+
+                            ((results.distanceTotTimeFromWR<0)?"bg-yellow-gold":((results.distanceTotTimeFromNR<0)?"bg-yellow-gold bg-opacity-80":((results.distanceTotTimeFromPB<0)?"bg-blueOverBg bg-opacity-70":"")))}
+                        >{((results.distanceTotTimeFromWR<0)?"NEW WORLD RECORD":((results.distanceTotTimeFromNR<0)?"NEW NATIONAL RECORD":((results.distanceTotTimeFromPB<0)?"NEW PERSONAL BEST":"")))}</div>
+                        
+                        <div className={"text-base w-[250px] text-nowrap px-3 py-[6px] text-black WR-clip-path "+
+                            ((results.distanceTotTimeFromWR<0)?"bg-yellow-gold":((results.distanceAvgTimeFromNR<0)?"bg-yellow-gold bg-opacity-80":((results.distanceAvgTimeFromPB<0)?"bg-blueOverBg bg-opacity-70":"")))}
+                        >{((results.distanceAvgTimeFromWR<0)?"NEW WORLD RECORD":((results.distanceAvgTimeFromNR<0)?"NEW NATIONAL RECORD":((results.distanceAvgTimeFromPB<0)?"NEW PERSONAL BEST":"")))}</div>
+
+                        <div className={"text-base w-[250px] text-nowrap px-3 py-[6px] text-black WR-clip-path "+
+                            ((results.distanceFastestWordFromWR<0)?"bg-yellow-gold":((results.distanceFastestWordFromNR<0)?"bg-yellow-gold bg-opacity-80":((results.distanceFastestWordFromPB<0)?"bg-blueOverBg bg-opacity-70":"")))}
+                        >{((results.distanceFastestWordFromWR<0)?"NEW WORLD RECORD":((results.distanceFastestWordFromNR<0)?"NEW NATIONAL RECORD":((results.distanceFastestWordFromPB<0)?"NEW PERSONAL BEST":"")))}</div>
+                    </div>
+                    
                 </div>
             </div>}
             </>

@@ -8,6 +8,10 @@
   .glass-effect {
     @apply isolate bg-white/20 shadow-lg ring-1 ring-black/5;
   }
+
+  .WR-clip-path{
+    clip-path: polygon(0 0, 100% 0, 90% 100%, 0% 100%);
+  }
 }
 
 body {
