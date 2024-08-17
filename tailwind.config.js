@@ -19,7 +19,8 @@ export default {
         'mainBlue':"#1d4ed8",
         'greenOverBg':"#22c55e",
         'blueOverBg':"#93c5fd",
-        'yellow-gold':"#FEE101"
+        'yellow-gold':"#FEE101",
+        'darkBlue':"#1c158f"
       }
     },
   },

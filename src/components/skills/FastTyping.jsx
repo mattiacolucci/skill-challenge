@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import words_list from "../../assets/words.json";
 import Chronometer from "../Chronometer";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faUser } from "@fortawesome/free-solid-svg-icons";
 
 const FastTyping=(props)=>{
     //user settings
     const language="IT";
+    const expWidth=60;   //width of the bar indicating the experience of the player
     const personalBestSingleWord=1.000;  //personal best single word in sec
     const personalBestTotTime=10.000;   //personal best tot time in sec
     const personalBestAvgTime=1.200  //personal best avg time in sec
@@ -204,7 +207,21 @@ const FastTyping=(props)=>{
             {/*game results*/}
 
             {gameEnded && <div className="w-screen h-[100vh] bg-[#0c0b1f] text-white font-navbar font-semibold flex flex-col gap-5" ref={resultsRef}>
-                <div className="font-default text-3xl self-center mt-5">RESULTS</div>
+                <div className="ml-auto self-end mt-5 flex flex-col mr-7 gap-2 items-center">
+                    <div className="flex flex-row items-center gap-3">
+                        <div className="text-blueOverBg text-base">
+                            <FontAwesomeIcon icon={faUser}/>
+                        </div>
+                        User
+                    </div>
+                    <div className="flex flex-row items-center">
+                        <div className="w-6 h-6 leading-6 text-center bg-mainBlue rounded-[3px] text-white font-default text-base">S</div>
+                        <div className="w-[100px] h-3 bg-darkBlue bg-opacity-65 overflow-hidden">
+                            <div className={"h-full bg-mainBlue bg-opacity-80 w-["+(expWidth)+"px]"}></div>
+                        </div>
+                    </div>
+                </div>
+                <div className="font-default text-3xl self-center">RESULTS</div>
                 <div className="h-min w-screen flex flex-row items-center">
                     <div className="h-full w-[450px] flex flex-col gap-1 bg-white bg-opacity-10 rounded-md px-3 py-1 origin-center ml-[calc(100vw/2-225px)] flex-none">
 
@@ -306,7 +323,7 @@ const FastTyping=(props)=>{
                         >{((results.distanceTotTimeFromWR<0)?"NEW WORLD RECORD":((results.distanceTotTimeFromNR<0)?"NEW NATIONAL RECORD":((results.distanceTotTimeFromPB<0)?"NEW PERSONAL BEST":"")))}</div>
                         
                         <div className={"text-base w-[250px] text-nowrap px-3 py-[6px] text-black WR-clip-path "+
-                            ((results.distanceTotTimeFromWR<0)?"bg-yellow-gold":((results.distanceAvgTimeFromNR<0)?"bg-yellow-gold bg-opacity-80":((results.distanceAvgTimeFromPB<0)?"bg-blueOverBg bg-opacity-70":"")))}
+                            ((results.distanceAvgTimeFromWR<0)?"bg-yellow-gold":((results.distanceAvgTimeFromNR<0)?"bg-yellow-gold bg-opacity-80":((results.distanceAvgTimeFromPB<0)?"bg-blueOverBg bg-opacity-70":"")))}
                         >{((results.distanceAvgTimeFromWR<0)?"NEW WORLD RECORD":((results.distanceAvgTimeFromNR<0)?"NEW NATIONAL RECORD":((results.distanceAvgTimeFromPB<0)?"NEW PERSONAL BEST":"")))}</div>
 
                         <div className={"text-base w-[250px] text-nowrap px-3 py-[6px] text-black WR-clip-path "+
