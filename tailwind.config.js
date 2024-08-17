@@ -21,6 +21,20 @@ export default {
         'blueOverBg':"#93c5fd",
         'yellow-gold':"#FEE101",
         'darkBlue':"#1c158f"
+      },
+      keyframes:{
+        'record':{
+          '0%':{translate:"-150px 0",opacity:"0"},
+          '100%':{translate:"0 0",opacity:"1"}
+        },
+        'fadeUp':{
+          '0%':{translate:"0 150px",opacity:"0"},
+          '100%':{translate:"0 0",opacity:"1"}
+        }
+      },
+      animation: {
+        record: 'record 1s 1s ease-in-out forwards',
+        fadeUp: 'fadeUp 0.8s ease-in-out forwards'
       }
     },
   },

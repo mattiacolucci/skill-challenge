@@ -13,7 +13,7 @@ const Chronometer=forwardRef((props, ref) => {
         const startTime=new Date();
         if (isRunning) {
           // setting time from 0 to 1 every 10 milisecond using javascript setInterval method
-          intervalId = setInterval(() => setTime(Date.now() - startTime), 100);
+          intervalId = setInterval(() => {setTime(Date.now() - startTime);}, 100);
         }
         return ()=>clearInterval(intervalId)
     }, [isRunning]);
@@ -35,7 +35,7 @@ const Chronometer=forwardRef((props, ref) => {
 
     return(
         <div className="text-3xl text-white select-none">
-            {((seconds<10)?"0":"")+seconds}
+            {(((seconds<10)?"0":"")+seconds)+"s"}
         </div>
     )
 });
