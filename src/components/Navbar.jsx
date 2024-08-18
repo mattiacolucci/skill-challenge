@@ -12,8 +12,8 @@ const Navbar=()=>{
                 </div>
                 <div className="text-base text-white select-none">User</div>
             </div>
-            <button className="h-[27px] rounded-md bg-blue-800 text-white font-navbar px-2 text-sm">Sign up</button>
-            <button className="h-[27px] rounded-md border-blue-800 border-2 text-white font-navbar px-2 text-sm">Sign in</button>
+            <button className="h-[27px] rounded-md bg-darkBlue text-white font-navbar px-2 text-sm">Sign up</button>
+            <button className="h-[27px] rounded-md bg-blueOverBg bg-opacity-50 text-white font-navbar px-2 text-sm">Sign in</button>
         </div>
     )
 }

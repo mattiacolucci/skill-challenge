@@ -12,6 +12,10 @@
   .WR-clip-path{
     clip-path: polygon(0 0, 100% 0, 90% 100%, 0% 100%);
   }
+
+  .record-line-path{
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  }
 }
 
 body {

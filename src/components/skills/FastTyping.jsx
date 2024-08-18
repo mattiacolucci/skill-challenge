@@ -46,6 +46,7 @@ const FastTyping=(props)=>{
     const [showResults,setShowResults]=useState(false);
     const [results,setResults]=useState({});
     const [dataCharType,setDataCharType]=useState([{time:0,charNum:0}]);
+    const [recordLineWidth,setRecordLineWidth]=useState(0);
 
     useEffect(()=>{
         //take all words of the language with length equals to the selected num of chars that the words has to have
@@ -83,6 +84,23 @@ const FastTyping=(props)=>{
             chronometerRef.current.startAndStop();
         }
     },[isLoading])
+
+    //record line 
+    useEffect(()=>{
+        //calculate the width to increase of the coWR line every 10 ms
+        const recordLineWidthEvery10ms=(100*10)/(worldBestTotTime*1000);
+
+        //interval of record line
+        const intervalLine = setInterval(()=>{
+            setRecordLineWidth(lineWidth=>lineWidth+recordLineWidthEvery10ms);
+        },10);
+
+        if(recordLineWidth>=100 || gameEnded==true){
+            clearInterval(intervalLine);
+        }
+
+        return ()=>clearInterval(intervalLine)
+    },[gameEnded,recordLineWidth])
 
     //function called every time the input word changes
     const changeInputWord=(word)=>{
@@ -220,6 +238,12 @@ const FastTyping=(props)=>{
         return(
             <>
             <div className="relative h-[100vh] w-screen flex flex-col items-center justify-center overflow-hidden gap-5">
+                <div className="absolute top-0 w-screen flex flex-col justify-start">
+                    <div className="h-2 bg-yellow-gold self-start" style={{width:recordLineWidth+"vw"}}></div>
+                    <div className="record-line-path bg-yellow-gold h-[6px] w-4" style={{marginLeft:"calc("+recordLineWidth+"vw - 8px)"}}></div>
+                    <div className="bg-yellow-gold text-black p-1 w-[30px] text-center text-xs" style={{marginLeft:"calc("+recordLineWidth+"vw - 15px)"}}>WR</div>
+                </div>
+
                 <div className="text-xl text-white mt-10">FAST TYPING</div>
                 <div className="w-[400px] h-[200px] flex flex-row flex-wrap content-start gap-3 overflow-hidden bg-white bg-opacity-70 p-3 rounded-md">
                     {wordsToWrite.map((word,index)=>{

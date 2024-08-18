@@ -128,9 +128,9 @@ const Play=()=>{
                                 onChange={(e)=>updateParameter(0,1,15,e.target.value)} value={skillsParameters[0]}/>
                             </div>
                             <div className="w-[350px] flex flex-row gap-4 items-center">
-                                <div className="text-lg font-navbar font-semibold">Number of chars per word <span className="text-xs">(2-17)</span></div>
-                                <input type="number" className="ml-auto text-base px-3 py-1 border-0 border-b-2 font-navbar border-white outline-none bg-white bg-opacity-30" min={2} max={17} 
-                                onChange={(e)=>updateParameter(1,2,17,e.target.value)} value={skillsParameters[1]}/>
+                                <div className="text-lg font-navbar font-semibold">Number of chars per word <span className="text-xs">(2-10)</span></div>
+                                <input type="number" className="ml-auto text-base px-3 py-1 border-0 border-b-2 font-navbar border-white outline-none bg-white bg-opacity-30" min={2} max={10} 
+                                onChange={(e)=>updateParameter(1,2,10,e.target.value)} value={skillsParameters[1]}/>
                             </div></>}
 
                             {selectedSkill==1 && //parameters for skill 2
