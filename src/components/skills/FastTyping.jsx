@@ -4,12 +4,18 @@ import Chronometer from "../Chronometer";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser } from "@fortawesome/free-solid-svg-icons";
 import { Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
+import { calculateEarnedExpSkill, calculateMaxValueExpByLv } from "../../utility";
 
 const FastTyping=(props)=>{
     //user settings
     const language="IT";
-    const expWidth=60;   //width of the bar indicating the experience of the player
-    const userLv=25;  //level of the user
+    const [expValue,setExpValue]=useState(2400);
+    const [userLv,setUserLv]=useState(1);  //level of the user
+    const [maxValueExp,setMaxValueExp]=useState(calculateMaxValueExpByLv(userLv));
+    const [expWidth,setExpWidth]=useState((expValue/maxValueExp)*100);   //width of the bar indicating the experience of the player
+    const [earnedExp,setEarnedExp]=useState(0);   //indicated exp eaerned by playing the single game
+    const [levelUp,setLevelUp]=useState(false);  //true if after the game a new level has been reached
+    const [earnedExpString,setEarnedExpString]=useState("");  //string which express how the exp earned in a game is distribuited
     const personalBestSingleWord=1.000;  //personal best single word in sec
     const personalBestTotTime=10.000;   //personal best tot time in sec
     const personalBestAvgTime=1.200  //personal best avg time in sec
@@ -80,7 +86,14 @@ const FastTyping=(props)=>{
 
     //function called every time the input word changes
     const changeInputWord=(word)=>{
+        //get current time
         const currentTime=chronometerRef.current.getTime();
+
+        //if this is the first char typed of the game
+        if(dataCharType.length==1){
+            //calculate reaction time (time in which the first char is typed)
+            setResults({...results,reactionTime:parseFloat((currentTime/1000).toFixed(3))})
+        }
 
         //if the last char written is not a space
         if(word.slice(-1)!=" "){
@@ -105,11 +118,6 @@ const FastTyping=(props)=>{
                 var words=structuredClone(wordsToWrite);
                 words[currentWordToWrite]["status"]="correct";
                 words[currentWordToWrite]["time"]=(wordTypeTime/1000);
-
-                //check if the player did its personal best time for single word type
-                if(wordTypeTime<personalBestSingleWord){
-                    words[currentWordToWrite]["personalBest"]=true;
-                }
 
                 setWordsToWrite(words);
                 setCurrentWordToWrite(currentWordToWrite+1);  //update next word
@@ -155,8 +163,7 @@ const FastTyping=(props)=>{
                         distanceFastestWordFromNR:fastestWord.time-nationalBestSingleWord, distanceFastestWordFromWR: fastestWord.time-worldBestSingleWord
                     };
 
-                    console.log(wordsCopy);
-                    setResults(res);
+                    setResults({...results,...res});
 
                     //disable input
                     inputRef.current.disabled=true;
@@ -176,6 +183,21 @@ const FastTyping=(props)=>{
     const goResults=()=>{
         //go to results screen
         resultsRef.current.scrollIntoView({behavior: "smooth", block: "start", inline: "nearest"});
+
+        //calculate earned exp and new level if it has been reached
+        const [newExp,newLevel,newEarnedExp,newEarnedExpString]=calculateEarnedExpSkill("FAST TYPING",props.skillsParameters,userLv,results,expValue);
+        const newMaxValueExp=(newLevel!=userLv)?calculateMaxValueExpByLv(newLevel):maxValueExp;
+
+        //update lv and exp after 2 sec
+        setTimeout(()=>{setUserLv(newLevel);
+            setEarnedExp(newEarnedExp);
+            setLevelUp((newLevel>userLv)?true:false);
+            setExpValue(newExp);
+            setExpWidth((newExp/newMaxValueExp)*100);
+            setMaxValueExp(newMaxValueExp);
+            setEarnedExpString(newEarnedExpString);
+        },2000)
+
         setShowResults(true);
     }
 
@@ -189,7 +211,6 @@ const FastTyping=(props)=>{
                                     <div className={"font-navbar text-base "+((index>6)?"text-white text-opacity-70":"text-blueOverBg")}>{word.time.toFixed(3)+"s"}</div>
                                     <div className={"w-full h-1 rounded-md "+((index>6)?"bg-white bg-opacity-70":"bg-blueOverBg")}></div>
                                     <div className="font-navbar text-white text-base">{word.word.charAt(0).toUpperCase() + word.word.slice(1)}</div>
-                                    {word.personalBest && <div className="text-sm px-2 py-1 bg-yellow-gold bg-opacity-60 rounded-md">PB</div>}
                                 </div>
                             )})
                         }
@@ -243,25 +264,30 @@ const FastTyping=(props)=>{
 
             <div className="w-screen h-[100vh] bg-[#0c0b1f] text-white font-navbar font-semibold flex flex-col gap-5" ref={resultsRef}>
             {gameEnded && showResults && <>
-                <div className="w-screen flex flex-row items-center mt-5 justify-end">
-                    <div className="mr-auto self-end flex flex-col ml-7 gap-2 items-center">
-                        <div className="flex flex-row items-center gap-3">
+                <div className="w-screen flex flex-row items-center mt-5">
+                    <div className="basis-[33%] self-end flex flex-col pl-7 gap-2">
+                        <div className="flex flex-row items-center gap-3 ml-1">
                             <div className="text-blueOverBg text-base">
                                 <FontAwesomeIcon icon={faUser}/>
                             </div>
-                            User
+                            <div className="w-[80px] line-clamp-1">User</div>
                         </div>
                         <div className="flex flex-row items-center">
                             <div className="w-6 h-6 leading-6 text-center bg-mainBlue rounded-[3px] text-white font-default text-xs font-thin">{userLv}</div>
-                            <div className="w-[100px] h-3 bg-darkBlue bg-opacity-65 overflow-hidden">
-                                <div className={"h-full bg-mainBlue bg-opacity-80 w-["+expWidth+"px]"}></div>
+                            <div className="relative w-[100px] h-4 bg-darkBlue bg-opacity-65 overflow-hidden flex items-center justify-center">
+                                <div className="text-white text-[10px] z-[2] text-opacity-80">{expValue+"/"+maxValueExp}</div>
+                                <div className="absolute h-full bg-mainBlue bg-opacity-80 left-0 transition-all duration-300" style={{width:expWidth+"%"}}></div>
                             </div>
+                            <div className="text-white text-[10px] ml-2" title={earnedExpString}>{"+"+earnedExp+" exp"}</div>
+                            {levelUp && <div className="text-mainGreen text-[10px] ml-2 animate-fadeUp">⮙ Level Up</div>}
                         </div>
                     </div>
 
-                    <div className="w-[170px] font-default text-3xl self-center text-center">RESULTS</div>
+                    <div className="basis-[33%] font-default text-3xl self-center text-center">RESULTS</div>
 
-                    <button className="text-base px-3 py-2 bg-blue-700 self-end rounded-sm ml-auto mr-7">CONTNUE ➣</button>
+                    <div className="basis-[33%] flex items-center justify-end">
+                        <button className="text-base px-3 py-2 bg-blue-700 self-end rounded-sm ml-auto mr-7">CONTNUE ➣</button>
+                    </div>
                     
                 </div>
 
@@ -270,9 +296,13 @@ const FastTyping=(props)=>{
                         <div className="text-white text-xl">KEYPRESS CHART</div>
                         <LineChart width={300} height={150} data={dataCharType} margin={{bottom:10,right:10}} title="Keypress Chart" style={{alignSelf:"center"}}>
                             <XAxis minTickGap={10} dataKey="time" interval={"equidistantPreserveStartEnd"} label={{ value: 'Time (s)', angle: 0, position: 'insideBottomRight', offset:-7, fontSize:"12px"}} style={{ fontSize: '12px'}}/>
-                            <YAxis minTickGap={8} interval={"equidistantPreserveStartEnd"} label={{ value: 'Num Of Char', angle: -90, fontSize:"12px", offset:-10}} style={{ fontSize: '12px'}}/>
+                            <YAxis minTickGap={8} interval={"equidistantPreserveStartEnd"} label={{ value: 'Num Of Typed Chars', angle: -90, fontSize:"10px", position:'insideBottom', offset:55}} style={{ fontSize: '12px'}}/>
                             <Line type="monotone" dataKey="charNum" stroke="#1c158f" dot={false} label={false} strokeWidth={1.5}/>
                         </LineChart>
+                        <div className="text-white text-sm text-center">
+                            REACTION TIME<br/>
+                            <span className="text-xs text-white text-opacity-80">{results.reactionTime+"s"}</span>
+                        </div>
                     </div>
 
                     <div className="h-full w-[450px] flex flex-col gap-1 bg-white bg-opacity-10 rounded-md px-3 py-1 pb-0 origin-center flex-none z-[2]">
