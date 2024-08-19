@@ -180,7 +180,7 @@ const Play=(props)=>{
                     {/*display the respective game based on the skill selected. A callback to call 
                     when the game skill ends is passed to the game skill component and skills parameters
                     are passed too*/}
-                    {selectedSkill==0 && <FastTyping endGameCallback={onGameSkillEnd} skillsParameters={skillsParameters}/>}
+                    {selectedSkill==0 && <FastTyping endGameCallback={onGameSkillEnd} skillsParameters={skillsParameters} user={props.user}/>}
                     </>
                 }
 
