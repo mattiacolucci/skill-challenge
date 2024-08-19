@@ -30,11 +30,16 @@ export default {
         'fadeUp':{
           '0%':{translate:"0 150px",opacity:"0"},
           '100%':{translate:"0 0",opacity:"1"}
-        }
+        },
+        'rotation':{
+          '0%':{rotate: "0deg"},
+          '100%':{rotate: "359deg"}
+      }
       },
       animation: {
         record: 'record 1s 1s ease-in-out forwards',
-        fadeUp: 'fadeUp 0.8s ease-in-out forwards'
+        fadeUp: 'fadeUp 0.8s ease-in-out forwards',
+        rotation: 'rotation 2s infinite linear'
       }
     },
   },

@@ -2,18 +2,20 @@ import { faUser } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Link } from "react-router-dom";
 
-const Navbar=()=>{
+const Navbar=(props)=>{
     return(
         <div className="w-screen h-[8vh] border-b-2 border-b-white flex items-center px-3 bg-blue-950 bg-opacity-30 gap-4">
             <Link className="text-lg text-white select-none" to="/">SKILL CHALLENGE</Link>
-            <div className="ml-auto flex items-center h-[30px] gap-3 bg-white bg-opacity-30 px-3 rounded-md">
-                <div className="text-blue-700 text-base">
-                    <FontAwesomeIcon icon={faUser}/>
+            {props.isLogged &&
+                <div className="ml-auto flex items-center h-[30px] gap-3 bg-white bg-opacity-30 px-3 rounded-md">
+                    <img src={props.user.photoURL} className="w-[20px] h-[20px] rounded-full"/>
+                    <div className="text-sm text-white select-none max-w-[150px] line-clamp-1 font-default">{props.user.displayName.toUpperCase()}</div>
                 </div>
-                <div className="text-base text-white select-none">User</div>
-            </div>
-            <button className="h-[27px] rounded-md bg-darkBlue text-white font-navbar px-2 text-sm">Sign up</button>
+            }
+            {!props.isLogged && <>
+            <Link to="/login"><button className="h-[27px] rounded-md bg-darkBlue text-white font-navbar px-2 text-sm">Sign up</button></Link>
             <button className="h-[27px] rounded-md bg-blueOverBg bg-opacity-50 text-white font-navbar px-2 text-sm">Sign in</button>
+            </>}
         </div>
     )
 }

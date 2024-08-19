@@ -5,7 +5,7 @@ import { skills } from "../assets/data";
 import FastTyping from "../components/skills/FastTyping";
 
 
-const Play=()=>{
+const Play=(props)=>{
     const playScreenRef=useRef();
     const playCountDownRef=useRef();
     const [selectionState,setSelectionState]=useState(0);
@@ -77,7 +77,7 @@ const Play=()=>{
 
     return(
         <Container overflowHidden={true}>
-            <Navbar/>
+            <Navbar isLogged={props.isSignedIn} user={props.user}/>
             <div className="w-[90vw] h-[90vh] mt-[2vh] border-l-2 border-white border-opacity-70 flex flex-col items-center pl-7 pb-3">
                 <div className={"w-full flex flex-col px-6 py-3 border-b-2 border-white border-opacity-70 shadow-none gap-4 transition-all duration-500 "+((selectionState==0)?"flex-1":"h-min")}>
                     <div className={"text-white "+((selectionState==0)?"text-2xl":"text-lg")}>SELECT SKILLS</div>
