@@ -6,7 +6,7 @@ import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyAqAYTZbE0eZcEV_i9FG9tk_4XaaEEBofM",
+  apiKey: import.meta.env.VITE_APP_FIREBASE_KEY,
   authDomain: "skill-challenge-45a1d.firebaseapp.com",
   projectId: "skill-challenge-45a1d",
   storageBucket: "skill-challenge-45a1d.appspot.com",

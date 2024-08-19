@@ -16,7 +16,7 @@ function App() {
       <>
         <Container>
           <Navbar isLogged={isSignedIn} user={user}/>
-          <div className='flex-1 w-screen flex flex-row justify-evenly py-5 gap-6'>
+          <div className='h-[82vh] flex-none w-screen flex flex-row justify-evenly py-5 gap-6'>
             
             <div className='h-auto basis-[15%] flex flex-col items-center py-3 border-r-2 border-white border-opacity-60 text-white px-4 gap-2'>
               <Link to="/play" className='w-full h-[30px] rounded-md text-left hover:bg-white hover:bg-opacity-40 transition-all duration-300 px-4 leading-[30px]'>
