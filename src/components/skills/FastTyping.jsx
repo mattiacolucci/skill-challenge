@@ -1,18 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import words_list from "../../assets/words.json";
 import Chronometer from "../Chronometer";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faUser } from "@fortawesome/free-solid-svg-icons";
-import { Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
+import { Line, LineChart, XAxis, YAxis } from "recharts";
 import { calculateEarnedExpSkill, calculateMaxValueExpByLv } from "../../utility";
+import UserLevel from "../UserLevel";
 
 const FastTyping=(props)=>{
     //user settings
     const language="IT";
+    const username=props.user.displayName;
+    const userProfileImage=props.user.photoURL;
     const [expValue,setExpValue]=useState(2400);
     const [userLv,setUserLv]=useState(1);  //level of the user
-    const [maxValueExp,setMaxValueExp]=useState(calculateMaxValueExpByLv(userLv));
-    const [expWidth,setExpWidth]=useState((expValue/maxValueExp)*100);   //width of the bar indicating the experience of the player
     const [earnedExp,setEarnedExp]=useState(0);   //indicated exp eaerned by playing the single game
     const [levelUp,setLevelUp]=useState(false);  //true if after the game a new level has been reached
     const [earnedExpString,setEarnedExpString]=useState("");  //string which express how the exp earned in a game is distribuited
@@ -204,15 +203,12 @@ const FastTyping=(props)=>{
 
         //calculate earned exp and new level if it has been reached
         const [newExp,newLevel,newEarnedExp,newEarnedExpString]=calculateEarnedExpSkill("FAST TYPING",props.skillsParameters,userLv,results,expValue);
-        const newMaxValueExp=(newLevel!=userLv)?calculateMaxValueExpByLv(newLevel):maxValueExp;
 
         //update lv and exp after 2 sec
         setTimeout(()=>{setUserLv(newLevel);
             setEarnedExp(newEarnedExp);
             setLevelUp((newLevel>userLv)?true:false);
             setExpValue(newExp);
-            setExpWidth((newExp/newMaxValueExp)*100);
-            setMaxValueExp(newMaxValueExp);
             setEarnedExpString(newEarnedExpString);
         },2000)
 
@@ -286,26 +282,12 @@ const FastTyping=(props)=>{
             
             {/*game results*/}
 
-            <div className="w-screen h-[100vh] bg-[#0c0b1f] text-white font-navbar font-semibold flex flex-col gap-5" ref={resultsRef}>
+            <div className="w-screen h-[100vh] bg-resultsBg text-white font-navbar font-semibold flex flex-col gap-5" ref={resultsRef}>
             {gameEnded && showResults && <>
                 <div className="w-screen flex flex-row items-center mt-5">
-                    <div className="basis-[33%] self-end flex flex-col pl-7 gap-2">
-                        <div className="flex flex-row items-center gap-3 ml-1">
-                            <div className="text-blueOverBg text-base">
-                                <FontAwesomeIcon icon={faUser}/>
-                            </div>
-                            <div className="w-[80px] line-clamp-1">User</div>
-                        </div>
-                        <div className="flex flex-row items-center">
-                            <div className="w-6 h-6 leading-6 text-center bg-mainBlue rounded-[3px] text-white font-default text-xs font-thin">{userLv}</div>
-                            <div className="relative w-[100px] h-4 bg-darkBlue bg-opacity-65 overflow-hidden flex items-center justify-center">
-                                <div className="text-white text-[10px] z-[2] text-opacity-80">{expValue+"/"+maxValueExp}</div>
-                                <div className="absolute h-full bg-mainBlue bg-opacity-80 left-0 transition-all duration-300" style={{width:expWidth+"%"}}></div>
-                            </div>
-                            <div className="text-white text-[10px] ml-2" title={earnedExpString}>{"+"+earnedExp+" exp"}</div>
-                            {levelUp && <div className="text-mainGreen text-[10px] ml-2 animate-fadeUp">⮙ Level Up</div>}
-                        </div>
-                    </div>
+
+                    <UserLevel className="basis-[33%] self-end pl-7" userLv={userLv} expValue={expValue} userProfileImage={userProfileImage}
+                    levelUp={levelUp} username={username} earnedExp={earnedExp} earnedExpString={earnedExpString} displayUserInfo={true}/>
 
                     <div className="basis-[33%] font-default text-3xl self-center text-center">RESULTS</div>
 

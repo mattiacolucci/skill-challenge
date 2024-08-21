@@ -53,4 +53,23 @@ const calculateEarnedExpSkill=(skill,skillParameters,level,results,exp)=>{
     return [Math.round(exp),level,earnedExp,expString];
 }
 
-export {calculateMaxValueExpByLv, calculateEarnedExpSkill};
+
+//function used to parse a jwt in a json
+function parseJwt (token) {
+    var base64Url = token.split('.')[1];
+    var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    var jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+
+    return JSON.parse(jsonPayload);
+}
+
+//get country name by ip of the client
+const getCountryByIp=async ()=>{
+    const req = await fetch("https://ipapi.co/json/");
+    const data = await req.json();
+    return data.country_name;
+}
+
+export {calculateMaxValueExpByLv, calculateEarnedExpSkill, parseJwt, getCountryByIp};

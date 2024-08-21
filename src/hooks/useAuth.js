@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { auth } from '../firebase'
 
-//TO USE THIS HOOK JUST CHECK IF "pending" IS FALSE. WHEN IT IS TRUE, JUST GET "isSignedIn" AND "user" TO KNOW IF
+//TO USE THIS HOOK JUST CHECK IF "pending" IS FALSE. WHEN "pending" IS TRUE, JUST GET "isSignedIn" AND "user" TO KNOW IF
 //THE USER IS LOGGED AND GET USER DATA
 
 export function useAuth() {
@@ -12,7 +12,8 @@ export function useAuth() {
   })
 
   useEffect(() => {
-    //reister a listener which is triggered when the auth changes
+    //register a listener which is triggered when the auth changes
+    //this way, on component load, we check if the user is authenticated
     const unregisterAuthObserver =auth.onAuthStateChanged(user =>
         //once get the auth response, store results in the state
       setAuthState({ user, pending: false, isSignedIn: !!user })

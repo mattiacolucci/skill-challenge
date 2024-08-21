@@ -13,8 +13,7 @@ const Navbar=(props)=>{
                 </div></Link>
             }
             {!props.isLogged && <>
-            <Link to="/login"><button className="h-[27px] rounded-md bg-darkBlue text-white font-navbar px-2 text-sm">Sign up</button></Link>
-            <button className="h-[27px] rounded-md bg-blueOverBg bg-opacity-50 text-white font-navbar px-2 text-sm">Sign in</button>
+            <Link to="/login" className="ml-auto"><button className="h-[27px] rounded-md bg-blueOverBg bg-opacity-50 text-white font-navbar px-2 text-sm">Sign in</button></Link>
             </>}
         </div>
     )
