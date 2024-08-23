@@ -1,14 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Container from "../components/Container";
 import Navbar from "../components/Navbar";
 import Loading from "../components/Loading";
 import { useCountries } from "use-react-countries";
-import { getUserData } from "../firebase";
+import { getUserData, signOutWithGoogle } from "../firebase";
 import UserLevel from "../components/UserLevel";
+import Notice from "../components/Notice";
+import { useNavigate } from "react-router-dom";
 
 const Profile=(props)=>{
     const [isLoading,setIsLoading]=useState(true);
     const [userData,setUserdata]=useState({});
+    const noticeRef=useRef();
+    const navigate=useNavigate();
     const {countries}=useCountries();
     countries.sort(function(a, b) {
         return a.name > b.name ? 1 : -1;
@@ -28,13 +32,21 @@ const Profile=(props)=>{
         }
 
         fetchUserData();
-    })
+    },[])
+
+    const signOut=async ()=>{
+        try{
+            noticeRef.current.triggerNotice("Signing out...",async()=>{await signOutWithGoogle();navigate("/")});
+        }catch(e){
+            noticeRef.current.triggerNotice(e.message);
+        }
+    }
 
     if(isLoading){
         return <Loading/>
     }else{
         return(
-            <Container bg="bg-resultsBg">
+            <Container bg="bg-resultsBg" overflowHidden={true}>
                 <Navbar isLogged={props.isSignedIn} user={props.user}/>
                 
                 <div className="w-screen flex flex-row items-center mt-5">
@@ -79,8 +91,12 @@ const Profile=(props)=>{
                             </Option>
                             ))}
                         </Select>}
+
+                        <button className="bg-mainRed text-white p-1 px-3 font-navbar outline-none rounded-sm" onClick={()=>signOut()}>Sign Out</button>
                     </div>
                 </div>
+
+                <Notice ref={noticeRef}/>
             </Container>
         )
     }

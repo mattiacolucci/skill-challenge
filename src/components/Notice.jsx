@@ -13,7 +13,10 @@ const Notice=forwardRef((props,ref)=>{
             setShowNotice(true);
 
             //after 4 secs the notice disappear and callback is executed
-            setTimeout(()=>{setShowNotice(false);callbackFunction();},4000);
+            setTimeout(()=>{
+                setShowNotice(false);
+                callbackFunction();
+            },4000);
         }
 
     }));

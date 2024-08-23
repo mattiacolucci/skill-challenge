@@ -4,14 +4,18 @@ import Chronometer from "../Chronometer";
 import { Line, LineChart, XAxis, YAxis } from "recharts";
 import { calculateEarnedExpSkill, calculateMaxValueExpByLv } from "../../utility";
 import UserLevel from "../UserLevel";
+import SoftLoading from "../SoftLoading";
+import Loading from "../Loading";
+import { storeGameResult, updateUserLvExp } from "../../firebase";
+import { useNavigate } from "react-router-dom";
 
 const FastTyping=(props)=>{
     //user settings
     const language="IT";
     const username=props.user.displayName;
     const userProfileImage=props.user.photoURL;
-    const [expValue,setExpValue]=useState(2400);
-    const [userLv,setUserLv]=useState(1);  //level of the user
+    const [expValue,setExpValue]=useState(props.user.exp);
+    const [userLv,setUserLv]=useState(props.user.lv);  //level of the user
     const [earnedExp,setEarnedExp]=useState(0);   //indicated exp eaerned by playing the single game
     const [levelUp,setLevelUp]=useState(false);  //true if after the game a new level has been reached
     const [earnedExpString,setEarnedExpString]=useState("");  //string which express how the exp earned in a game is distribuited
@@ -20,14 +24,14 @@ const FastTyping=(props)=>{
     const personalBestAvgTime=1.200  //personal best avg time in sec
 
     //national bests
-    const nationalBestSingleWord=0.876;
-    const nationalBestTotTime=2.876;
-    const nationalBestAvgTime=1.098;
+    const nationalBestSingleWord=props.records.NR.fastestWord;
+    const nationalBestTotTime=props.records.NR.totTime;
+    const nationalBestAvgTime=props.records.NR.avgTime;
 
     //world bests
-    const worldBestSingleWord=0.672;
-    const worldBestTotTime=2.387;
-    const worldBestAvgTime=0.876;
+    const worldBestSingleWord=props.records.WR.fastestWord;
+    const worldBestTotTime=props.records.WR.totTime;
+    const worldBestAvgTime=props.records.WR.avgTime;
 
     //params
     const num_words=props.skillsParameters[0];
@@ -37,6 +41,7 @@ const FastTyping=(props)=>{
     const chronometerRef=useRef();
     const resultsRef=useRef();
     const [isLoading,setIsLoading]=useState(true);
+    const [isSoftLoading,setIsSoftLoading]=useState(false);
     const [wordInput,setWordInput]=useState("");
     const [wordsToWrite,setWordsToWrite]=useState([]);
     const [currentWordToWrite,setCurrentWordToWrite]=useState("");
@@ -46,6 +51,8 @@ const FastTyping=(props)=>{
     const [results,setResults]=useState({});
     const [dataCharType,setDataCharType]=useState([{time:0,charNum:0}]);
     const [recordLineWidth,setRecordLineWidth]=useState(0);
+
+    const navigate=useNavigate();
 
     useEffect(()=>{
         //take all words of the language with length equals to the selected num of chars that the words has to have
@@ -171,13 +178,19 @@ const FastTyping=(props)=>{
                     const fastestWord={word:sortedWordsPerTime[0].word,time:sortedWordsPerTime[0].time};
                     const times=wordsCopy.map((w)=>w.time);
                     const avgTime=times.reduce((a, b) => a + b, 0)/times.length;
+
+                    //if a record is null it means it has not been already set, so set the distance between actual time and record
+                    //equals to null
                     const res={
                         totalTime:totalTime,distanceTotTimeFromPB:totalTime-personalBestTotTime,
-                        distanceTotTimeFromNR:totalTime-nationalBestTotTime, distanceTotTimeFromWR:totalTime-worldBestTotTime,
+                        distanceTotTimeFromNR:(nationalBestTotTime!=null)?totalTime-nationalBestTotTime:null, 
+                        distanceTotTimeFromWR:(worldBestTotTime!=null)?totalTime-worldBestTotTime:null,
                         avgTime:avgTime,distanceAvgTimeFromPB:avgTime-personalBestAvgTime,
-                        distanceAvgTimeFromNR:avgTime-nationalBestAvgTime, distanceAvgTimeFromWR: avgTime-worldBestAvgTime,
+                        distanceAvgTimeFromNR:(nationalBestAvgTime!=null)?avgTime-nationalBestAvgTime:null, 
+                        distanceAvgTimeFromWR: (worldBestAvgTime!=null)?avgTime-worldBestAvgTime:null,
                         fastestWord:fastestWord, distanceFastestWordFromPB:fastestWord.time-personalBestSingleWord,
-                        distanceFastestWordFromNR:fastestWord.time-nationalBestSingleWord, distanceFastestWordFromWR: fastestWord.time-worldBestSingleWord
+                        distanceFastestWordFromNR:(nationalBestSingleWord!=null)?fastestWord.time-nationalBestSingleWord:null, 
+                        distanceFastestWordFromWR: (worldBestSingleWord!=null)?fastestWord.time-worldBestSingleWord:null
                     };
 
                     setResults({...results,...res});
@@ -197,10 +210,7 @@ const FastTyping=(props)=>{
         }
     }
 
-    const goResults=()=>{
-        //go to results screen
-        resultsRef.current.scrollIntoView({behavior: "smooth", block: "start", inline: "nearest"});
-
+    const goResults=async ()=>{
         //calculate earned exp and new level if it has been reached
         const [newExp,newLevel,newEarnedExp,newEarnedExpString]=calculateEarnedExpSkill("FAST TYPING",props.skillsParameters,userLv,results,expValue);
 
@@ -212,7 +222,32 @@ const FastTyping=(props)=>{
             setEarnedExpString(newEarnedExpString);
         },2000)
 
-        setShowResults(true);
+        //store result on db
+        setIsSoftLoading(true);
+
+        const [resp,message]=await storeGameResult({
+            skill:"FAST TYPING", user:props.user.uid, totTime:results.totalTime,
+            avgTime:results.avgTime, fastestWord:results.fastestWord.time, date: new Date().toISOString(),
+            numWords:num_words,numChars:num_chars
+        });
+
+        if(resp){
+            //update user lv and exp
+            const [response,message]=await updateUserLvExp(newLevel,newExp);
+
+            if(response){  //if lv and exp have been updated
+                //go to results screen
+                resultsRef.current.scrollIntoView({behavior: "smooth", block: "start", inline: "nearest"});
+
+                setShowResults(true);
+            }else{
+                console.log(message);
+            }
+        }else{
+            console.log(message);
+        }
+
+        setIsSoftLoading(false);
     }
 
     //component which display all typed words and the time in which it has been typed
@@ -221,7 +256,7 @@ const FastTyping=(props)=>{
     const wordTyped=<div className="w-screen px-4 flex flex-row gap-2 mt-auto mb-3 select-none content-start">
                         {wordsToWrite.filter(w=>w.status=="correct").map((word,index)=>{
                             return(
-                                <div className="basis-[10%] flex flex-col gap-2 items-center animate-fadeUp">
+                                <div className="basis-[10%] flex flex-col gap-2 items-center animate-fadeUp" key={word}>
                                     <div className={"font-navbar text-base "+((index>6)?"text-white text-opacity-70":"text-blueOverBg")}>{word.time.toFixed(3)+"s"}</div>
                                     <div className={"w-full h-1 rounded-md "+((index>6)?"bg-white bg-opacity-70":"bg-blueOverBg")}></div>
                                     <div className="font-navbar text-white text-base">{word.word.charAt(0).toUpperCase() + word.word.slice(1)}</div>
@@ -229,8 +264,10 @@ const FastTyping=(props)=>{
                             )})
                         }
                     </div>
-
-    if(!isLoading){
+    
+    if(isLoading){
+        return <Loading/>;
+    }else{
         return(
             <>
             <div className="relative h-[100vh] w-screen flex flex-col items-center justify-center overflow-hidden gap-5">
@@ -271,7 +308,7 @@ const FastTyping=(props)=>{
                 <div className="w-screen flex flex-row items-center mt-5 px-16">
                     <Chronometer ref={chronometerRef}/>
                     {//if the game is ended display the continue button
-                    gameEnded && <button className="text-base px-3 py-2 ml-auto bg-blue-700 self-end rounded-sm mt-auto" onClick={goResults}>CONTNUE ➣</button>}
+                    gameEnded && <button className="text-base px-3 py-2 ml-auto bg-blue-700 self-end rounded-sm mt-auto" onClick={goResults}>CONTINUE ➣</button>}
                 </div>
 
                 {//display all words typed and the time in which they have been typed
@@ -292,7 +329,7 @@ const FastTyping=(props)=>{
                     <div className="basis-[33%] font-default text-3xl self-center text-center">RESULTS</div>
 
                     <div className="basis-[33%] flex items-center justify-end">
-                        <button className="text-base px-3 py-2 bg-blue-700 self-end rounded-sm ml-auto mr-7">CONTNUE ➣</button>
+                        <button className="text-base px-3 py-2 bg-blue-700 self-end rounded-sm ml-auto mr-7" onClick={()=>navigate("/")}>CONTINUE ➣</button>
                     </div>
                     
                 </div>
@@ -326,20 +363,22 @@ const FastTyping=(props)=>{
                                         {"("+((results.distanceTotTimeFromPB>0)?"+":"")+results.distanceTotTimeFromPB.toFixed(3)+"s)"}
                                     </div>
                                 </div>
+                                {nationalBestTotTime!=null && 
                                 <div className="w-full flex flex-row justify-center items-center gap-2">
                                     <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] bg-yellow-gold bg-opacity-50 rounded-sm" title="National Record">NR</div>
                                     <div className="text-base">{nationalBestTotTime.toFixed(3)+"s"}</div>
                                     <div className={"text-[10px] "+((results.distanceTotTimeFromNR>0)?"text-yellow-gold":"text-mainGreen")}>
-                                        {"("+((results.distanceTotTimeFromNR>0)?"+":"")+results.distanceTotTimeFromNR.toFixed(3)+"s)"}
+                                        {(results.distanceTotTimeFromNR!=null)?("("+((results.distanceTotTimeFromNR>0)?"+":"")+results.distanceTotTimeFromNR.toFixed(3)+"s)"):""}
                                     </div>
-                                </div>
+                                </div>}
+                                {worldBestTotTime!=null && 
                                 <div className="flex flex-row justify-center items-center gap-2">
                                     <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] bg-yellow-gold bg-opacity-65 rounded-sm" title="World Record">WR</div>
                                     <div className="text-base">{worldBestTotTime.toFixed(3)+"s"}</div>
                                     <div className={"text-[10px] "+((results.distanceTotTimeFromWR>0)?"text-yellow-gold":"text-mainGreen")}>
-                                        {"("+((results.distanceTotTimeFromWR>0)?"+":"")+results.distanceTotTimeFromWR.toFixed(3)+"s)"}
+                                        {(results.distanceTotTimeFromWR!=null)?("("+((results.distanceTotTimeFromWR>0)?"+":"")+results.distanceTotTimeFromWR.toFixed(3)+"s)"):""}
                                     </div>
-                                </div>
+                                </div>}
                             </div>
                         </div>
 
@@ -356,20 +395,21 @@ const FastTyping=(props)=>{
                                         {"("+((results.distanceAvgTimeFromPB>0)?"+":"")+results.distanceAvgTimeFromPB.toFixed(3)+"s)"}
                                     </div>
                                 </div>
+                                {nationalBestAvgTime!=null && 
                                 <div className="flex flex-row justify-center items-center gap-2">
                                     <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] bg-yellow-gold bg-opacity-50 rounded-sm" title="National Record">NR</div>
                                     <div className="text-base">{nationalBestAvgTime.toFixed(3)+"s"}</div>
                                     <div className={"text-[10px] "+((results.distanceAvgTimeFromNR>0)?"text-yellow-gold":"text-mainGreen")}>
-                                        {"("+((results.distanceAvgTimeFromNR>0)?"+":"")+results.distanceAvgTimeFromNR.toFixed(3)+"s)"}
+                                        {(results.distanceAvgTimeFromNR!=null)?("("+((results.distanceAvgTimeFromNR>0)?"+":"")+results.distanceAvgTimeFromNR.toFixed(3)+"s)"):""}
                                     </div>
-                                </div>
-                                <div className="flex flex-row justify-center items-center gap-2">
+                                </div>}
+                                {worldBestAvgTime!=null && <div className="flex flex-row justify-center items-center gap-2">
                                     <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] bg-yellow-gold bg-opacity-65 rounded-sm" title="World Record">WR</div>
                                     <div className="text-base">{worldBestAvgTime.toFixed(3)+"s"}</div>
                                     <div className={"text-[10px] "+((results.distanceAvgTimeFromWR>0)?"text-yellow-gold":"text-mainGreen")}>
-                                        {"("+((results.distanceAvgTimeFromWR>0)?"+":"")+results.distanceAvgTimeFromWR.toFixed(3)+"s)"}
+                                        {(results.distanceAvgTimeFromWR!=null)?("("+((results.distanceAvgTimeFromWR>0)?"+":"")+results.distanceAvgTimeFromWR.toFixed(3)+"s)"):""}
                                     </div>
-                                </div>
+                                </div>}
                             </div>
                         </div>
 
@@ -386,20 +426,20 @@ const FastTyping=(props)=>{
                                         {"("+((results.distanceFastestWordFromPB>0)?"+":"")+results.distanceFastestWordFromPB.toFixed(3)+"s)"}
                                     </div>
                                 </div>
-                                <div className="flex flex-row justify-center items-center gap-2">
+                                {nationalBestSingleWord!=null && <div className="flex flex-row justify-center items-center gap-2">
                                     <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] bg-yellow-gold bg-opacity-50 rounded-sm" title="National Record">NR</div>
                                     <div className="text-base">{nationalBestSingleWord.toFixed(3)+"s"}</div>
                                     <div className={"text-[10px] "+((results.distanceFastestWordFromNR>0)?"text-yellow-gold":"text-mainGreen")}>
-                                        {"("+((results.distanceFastestWordFromNR>0)?"+":"")+results.distanceFastestWordFromNR.toFixed(3)+"s)"}
+                                        {(results.distanceFastestWordFromNR!=null)?("("+((results.distanceFastestWordFromNR>0)?"+":"")+results.distanceFastestWordFromNR.toFixed(3)+"s)"):""}
                                     </div>
-                                </div>
-                                <div className="flex flex-row justify-center items-center gap-2">
+                                </div>}
+                                {worldBestSingleWord!=null && <div className="flex flex-row justify-center items-center gap-2">
                                     <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] bg-yellow-gold bg-opacity-65 rounded-sm" title="World Record">WR</div>
                                     <div className="text-base">{worldBestSingleWord.toFixed(3)+"s"}</div>
                                     <div className={"text-[10px] "+((results.distanceFastestWordFromWR>0)?"text-yellow-gold":"text-mainGreen")}>
-                                        {"("+((results.distanceFastestWordFromWR>0)?"+":"")+results.distanceFastestWordFromWR.toFixed(3)+"s)"}
+                                        {(results.distanceFastestWordFromWR!=null)?("("+((results.distanceFastestWordFromWR>0)?"+":"")+results.distanceFastestWordFromWR.toFixed(3)+"s)"):""}
                                     </div>
-                                </div>
+                                </div>}
                             </div>
                         </div>
                     </div>
@@ -407,16 +447,16 @@ const FastTyping=(props)=>{
                     {/*Records badges*/}
                     <div className="h-full flex flex-col justify-around animate-record opacity-0 z-0">
                         <div className={"text-base w-[250px] text-nowrap px-3 py-[6px] text-black WR-clip-path "+
-                            ((results.distanceTotTimeFromWR<0)?"bg-yellow-gold":((results.distanceTotTimeFromNR<0)?"bg-yellow-gold bg-opacity-80":((results.distanceTotTimeFromPB<0)?"bg-blueOverBg bg-opacity-70":"")))}
-                        >{((results.distanceTotTimeFromWR<0)?"NEW WORLD RECORD":((results.distanceTotTimeFromNR<0)?"NEW NATIONAL RECORD":((results.distanceTotTimeFromPB<0)?"NEW PERSONAL BEST":"")))}</div>
+                            ((results.distanceTotTimeFromWR<0 || results.distanceTotTimeFromWR==null)?"bg-yellow-gold":((results.distanceTotTimeFromNR<0 || results.distanceTotTimeFromNR==null)?"bg-yellow-gold bg-opacity-80":((results.distanceTotTimeFromPB<0)?"bg-blueOverBg bg-opacity-70":"")))}
+                        >{((results.distanceTotTimeFromWR<0 || results.distanceTotTimeFromWR==null)?"NEW WORLD RECORD":((results.distanceTotTimeFromNR<0 || results.distanceTotTimeFromNR==null)?"NEW NATIONAL RECORD":((results.distanceTotTimeFromPB<0)?"NEW PERSONAL BEST":"")))}</div>
                         
                         <div className={"text-base w-[250px] text-nowrap px-3 py-[6px] text-black WR-clip-path "+
-                            ((results.distanceAvgTimeFromWR<0)?"bg-yellow-gold":((results.distanceAvgTimeFromNR<0)?"bg-yellow-gold bg-opacity-80":((results.distanceAvgTimeFromPB<0)?"bg-blueOverBg bg-opacity-70":"")))}
-                        >{((results.distanceAvgTimeFromWR<0)?"NEW WORLD RECORD":((results.distanceAvgTimeFromNR<0)?"NEW NATIONAL RECORD":((results.distanceAvgTimeFromPB<0)?"NEW PERSONAL BEST":"")))}</div>
+                            ((results.distanceAvgTimeFromWR<0 || results.distanceAvgTimeFromWR==null)?"bg-yellow-gold":((results.distanceAvgTimeFromNR<0 || results.distanceAvgTimeFromNR==null)?"bg-yellow-gold bg-opacity-80":((results.distanceAvgTimeFromPB<0)?"bg-blueOverBg bg-opacity-70":"")))}
+                        >{((results.distanceAvgTimeFromWR<0 || results.distanceAvgTimeFromWR==null)?"NEW WORLD RECORD":((results.distanceAvgTimeFromNR<0 || results.distanceAvgTimeFromNR==null)?"NEW NATIONAL RECORD":((results.distanceAvgTimeFromPB<0)?"NEW PERSONAL BEST":"")))}</div>
 
                         <div className={"text-base w-[250px] text-nowrap px-3 py-[6px] text-black WR-clip-path "+
-                            ((results.distanceFastestWordFromWR<0)?"bg-yellow-gold":((results.distanceFastestWordFromNR<0)?"bg-yellow-gold bg-opacity-80":((results.distanceFastestWordFromPB<0)?"bg-blueOverBg bg-opacity-70":"")))}
-                        >{((results.distanceFastestWordFromWR<0)?"NEW WORLD RECORD":((results.distanceFastestWordFromNR<0)?"NEW NATIONAL RECORD":((results.distanceFastestWordFromPB<0)?"NEW PERSONAL BEST":"")))}</div>
+                            ((results.distanceFastestWordFromWR<0 || results.distanceFastestWordFromWR==null)?"bg-yellow-gold":((results.distanceFastestWordFromNR<0 || results.distanceFastestWordFromNR==null)?"bg-yellow-gold bg-opacity-80":((results.distanceFastestWordFromPB<0)?"bg-blueOverBg bg-opacity-70":"")))}
+                        >{((results.distanceFastestWordFromWR<0 || results.distanceFastestWordFromWR==null)?"NEW WORLD RECORD":((results.distanceFastestWordFromNR<0 || results.distanceFastestWordFromNR==null)?"NEW NATIONAL RECORD":((results.distanceFastestWordFromPB<0)?"NEW PERSONAL BEST":"")))}</div>
                     </div>
                 </div>
                 
@@ -427,6 +467,8 @@ const FastTyping=(props)=>{
                 }
                 
                 </>}
+
+                {isSoftLoading && <SoftLoading/>}
             </div>
             </>
         )
