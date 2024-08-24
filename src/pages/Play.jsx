@@ -3,7 +3,7 @@ import Container from "../components/Container";
 import Navbar from "../components/Navbar";
 import { skills } from "../assets/data";
 import FastTyping from "../components/skills/FastTyping";
-import { getSkillRecords, getUserData } from "../firebase";
+import { getSkillLeaderboard, getUserData } from "../firebase";
 import Loading from "../components/Loading";
 
 
@@ -67,9 +67,11 @@ const Play=(props)=>{
         if(response){
             setUserData({...props.user,lv:data.lv,exp:data.exp});
 
-            //fetch skill record
-            const [resp,skillRecords] = await getSkillRecords(selectedSkill,skillsParameters,data.country);
-            console.log(skillRecords);
+            //fetch skill leaderboard
+            const [resp,skillRecords] = await getSkillLeaderboard(selectedSkill,skillsParameters,data.country,1);
+
+            console.log(skillRecords)
+
             if(resp){
                 setRecords(skillRecords);
             }else{

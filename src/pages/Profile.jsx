@@ -1,16 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { cloneElement, useEffect, useRef, useState } from "react";
 import Container from "../components/Container";
 import Navbar from "../components/Navbar";
 import Loading from "../components/Loading";
 import { useCountries } from "use-react-countries";
-import { getUserData, signOutWithGoogle } from "../firebase";
+import { getUserData, signOutWithGoogle, updateUserCountry } from "../firebase";
 import UserLevel from "../components/UserLevel";
 import Notice from "../components/Notice";
 import { useNavigate } from "react-router-dom";
+import { Option, Select } from "@material-tailwind/react";
 
 const Profile=(props)=>{
     const [isLoading,setIsLoading]=useState(true);
     const [userData,setUserdata]=useState({});
+    const [showCountryChange,setShowCountryChange]=useState(false);
+    const [newCountry,setNewCountry]=useState("");
     const noticeRef=useRef();
     const navigate=useNavigate();
     const {countries}=useCountries();
@@ -24,6 +27,7 @@ const Profile=(props)=>{
             
             if(response){
                 setUserdata({name:props.user.displayName,profileImage:props.user.photoURL,...userData});
+                setNewCountry(userData.country);
             }else{
                 console.log(userData);
             }
@@ -42,6 +46,18 @@ const Profile=(props)=>{
         }
     }
 
+    const changeCountry=async()=>{
+        const [resp,message]=await updateUserCountry(newCountry);
+        
+        if(resp){
+            setShowCountryChange(false);
+            setUserdata({...userData,country:newCountry});
+            noticeRef.current.triggerNotice("Country updated!");
+        }else{
+            console.log(message);
+        }
+    }
+
     if(isLoading){
         return <Loading/>
     }else{
@@ -49,7 +65,7 @@ const Profile=(props)=>{
             <Container bg="bg-resultsBg" overflowHidden={true}>
                 <Navbar isLogged={props.isSignedIn} user={props.user}/>
                 
-                <div className="w-screen flex flex-row items-center mt-5">
+                <div className="w-screen flex flex-row mt-5">
                     <div className="basis-[33%] flex flex-col items-center gap-4">
                         <img src={userData.profileImage} className="w-[80px] h-[80px] rounded-full border-2 border-blueOverBg"/>
                         <div className="text-white font-default text-2xl w-full line-clamp-1 text-center">{userData.name.toUpperCase()}</div>
@@ -59,15 +75,12 @@ const Profile=(props)=>{
                             <div className="text-white text-sm font-navbar">{userData.country.toUpperCase()}</div>
                         </div>
 
-                        <UserLevel className="items-center" userLv={userData.lv} expValue={userData.exp} userProfileImage={userData.profileImage}
-                        username={userData.name}/>
-
-                        {false && 
+                        {showCountryChange && 
                         <Select
                             size="lg"
                             label="Select Country"
                             labelProps={{className:"text-white"}}
-                            containerProps={{className:"!w-[90%] !min-w-[90%]"}}
+                            containerProps={{className:"!w-[50%] !min-w-[50%]"}}
                             menuProps={{className:"!top-[50px] !max-h-[150px]"}}
                             selected={(element) =>
                             element &&
@@ -77,8 +90,8 @@ const Profile=(props)=>{
                                 "flex items-center opacity-100 px-0 gap-2 pointer-events-none text-white text-opacity-70",
                             })
                             }
-                            value={country}
-                            onChange={(value)=>setCountry(value)}
+                            value={newCountry}
+                            onChange={(value)=>setNewCountry(value)}
                         >
                             {countries.map(({ name, flags }) => (
                             <Option key={name} value={name} className="flex items-center gap-2">
@@ -92,8 +105,39 @@ const Profile=(props)=>{
                             ))}
                         </Select>}
 
+                        {showCountryChange && 
+                        <div className="flex flex-row items-center gap-3">
+                            <div className="flex flex-row items-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 rounded-sm bg-mainBlue" onClick={()=>changeCountry()}>
+                                <i className="fi fi-rr-pen-square leading-[0] text-[8px]"></i>
+                                Save country
+                            </div>
+
+                            <div className="flex flex-row items-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 rounded-sm bg-mainRed" onClick={()=>setShowCountryChange(false)}>
+                                <i className="fi fi-br-cross leading-[0] text-[8px]"></i>
+                                Cancel
+                            </div>
+                        </div>}
+
+                        <UserLevel className="items-center" userLv={userData.lv} expValue={userData.exp} userProfileImage={userData.profileImage}
+                        username={userData.name}/>
+                    </div>
+
+                    <div className="basis-[33%] flex flex-col items-center gap-4">
+                        
+                    </div>
+
+                    <div className="basis-[33%] flex flex-col items-center gap-4">
+                        <div className="text-white text-2xl font-default">USER SETTINGS</div>
+
+                        {!showCountryChange && 
+                        <div className="flex flex-row items-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 rounded-sm bg-mainBlue" onClick={()=>setShowCountryChange(true)}>
+                            <i className="fi fi-rr-pen-square leading-[0] text-[8px]"></i>
+                            Edit country
+                        </div>}
+
                         <button className="bg-mainRed text-white p-1 px-3 font-navbar outline-none rounded-sm" onClick={()=>signOut()}>Sign Out</button>
                     </div>
+
                 </div>
 
                 <Notice ref={noticeRef}/>

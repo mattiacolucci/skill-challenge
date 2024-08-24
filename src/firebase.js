@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { collection, doc, DocumentSnapshot, getDoc, getDocs, getFirestore, limit, orderBy, query, QuerySnapshot, setDoc, updateDoc, where } from "firebase/firestore";
+import { collection, count, doc, DocumentSnapshot, getDoc, getDocs, getFirestore, limit, orderBy, query, QuerySnapshot, setDoc, updateDoc, where } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { skills } from "./assets/data";
 // TODO: Add SDKs for Firebase products that you want to use
@@ -80,8 +80,8 @@ const getUserData = async (uid)=>{
     }
 }
 
-//get skill records
-const getSkillRecords=async (skill, skillParameters, country)=>{
+//get skill leaderbord
+const getSkillLeaderboard=async (skill, skillParameters, country, limitResults=1)=>{
     var records={};
 
     //NOT WORKSS
@@ -92,15 +92,15 @@ const getSkillRecords=async (skill, skillParameters, country)=>{
                 //get world records
                 const totTimeWR=await getDocs(
                     query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
-                    where("skill","==",skills[0].title),orderBy("totTime"),limit(1))
+                    where("skill","==",skills[0].title),orderBy("totTime"),limit(limitResults))
                 );
                 const avgTimeWR=await getDocs(
                     query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
-                    where("skill","==",skills[0].title),orderBy("avgTime"),limit(1))
+                    where("skill","==",skills[0].title),orderBy("avgTime"),limit(limitResults))
                 );
                 const fastestWordWR=await getDocs(
                     query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
-                    where("skill","==",skills[0].title),orderBy("fastestWord"),limit(1))
+                    where("skill","==",skills[0].title),orderBy("fastestWord"),limit(limitResults))
                 );
 
                 //get national records
@@ -112,15 +112,15 @@ const getSkillRecords=async (skill, skillParameters, country)=>{
 
                     totTimeNR=await getDocs(
                         query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
-                        where("skill","==",skills[0].title),where("user","in",nationalUsersIds),orderBy("totTime"),limit(1))
+                        where("skill","==",skills[0].title),where("user","in",nationalUsersIds),orderBy("totTime"),limit(limitResults))
                     );
                     avgTimeNR=await getDocs(
                         query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
-                        where("skill","==",skills[0].title),where("user","in",nationalUsersIds),orderBy("avgTime"),limit(1))
+                        where("skill","==",skills[0].title),where("user","in",nationalUsersIds),orderBy("avgTime"),limit(limitResults))
                     );
                     fastestWordNR=await getDocs(
                         query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
-                        where("skill","==",skills[0].title),where("user","in",nationalUsersIds),orderBy("fastestWord"),limit(1))
+                        where("skill","==",skills[0].title),where("user","in",nationalUsersIds),orderBy("fastestWord"),limit(limitResults))
                     );
                 }else{  //there is no national record in this case
                     totTimeNR=0;
@@ -130,20 +130,29 @@ const getSkillRecords=async (skill, skillParameters, country)=>{
 
                 records={
                     "WR":{
-                        totTime:(!totTimeWR.empty)?totTimeWR.docs[0].data().totTime:null,
-                        avgTime:(!avgTimeWR.empty)?avgTimeWR.docs[0].data().avgTime:null,
-                        fastestWord:(!fastestWordWR.empty)?fastestWordWR.docs[0].data().fastestWord:null,
+                        totTime:(!totTimeWR.empty)?totTimeWR.docs.map(g=>g.data().totTime):null,
+                        avgTime:(!avgTimeWR.empty)?avgTimeWR.docs.map(g=>g.data().avgTime):null,
+                        fastestWord:(!fastestWordWR.empty)?fastestWordWR.docs.map(g=>g.data().fastestWord):null,
                     },
                     "NR":{
-                        totTime:(totTimeNR.empty || totTimeNR==0)?null:totTimeNR.docs[0].data().totTime,
-                        avgTime:(avgTimeNR.empty || avgTimeNR==0)?null:avgTimeNR.docs[0].data().avgTime,
-                        fastestWord:(fastestWordNR.empty || fastestWordNR==0)?null:fastestWordNR.docs[0].data().fastestWord,
+                        totTime:(totTimeNR.empty || totTimeNR==0)?null:totTimeNR.docs.map(g=>g.data().totTime),
+                        avgTime:(avgTimeNR.empty || avgTimeNR==0)?null:avgTimeNR.docs.map(g=>g.data().avgTime),
+                        fastestWord:(fastestWordNR.empty || fastestWordNR==0)?null:fastestWordNR.docs.map(g=>g.data().fastestWord),
                     }
                 }
                 
                 break;
             default:
                 break;
+        }
+
+        //if limit is 1, not return array of values but the value itself
+        if(limitResults==1 && records!={}){
+            for(const key in records){
+                for(const key2 in records[key]){
+                    records[key][key2]=records[key][key2][0];
+                }
+            }
         }
 
         return [true,records];
@@ -173,5 +182,16 @@ const updateUserLvExp=async(lv,exp)=>{
     }
 }
 
-export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillRecords,
-    storeGameResult,updateUserLvExp};
+const updateUserCountry=async(country)=>{
+    try{
+        await updateDoc(doc(db,"users",auth.currentUser.uid),{
+            country:country
+        });
+        return [true,"Success"];
+    }catch(e){
+        return [false,e.message];
+    }
+}
+
+export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillLeaderboard,
+    storeGameResult,updateUserLvExp,updateUserCountry};

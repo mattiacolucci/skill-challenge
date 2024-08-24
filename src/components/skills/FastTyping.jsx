@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import words_list from "../../assets/words.json";
 import Chronometer from "../Chronometer";
 import { Line, LineChart, XAxis, YAxis } from "recharts";
-import { calculateEarnedExpSkill, calculateMaxValueExpByLv } from "../../utility";
+import { calculateEarnedExpSkill } from "../../utility";
 import UserLevel from "../UserLevel";
 import SoftLoading from "../SoftLoading";
 import Loading from "../Loading";
