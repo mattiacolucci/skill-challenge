@@ -27,15 +27,7 @@ const Play=(props)=>{
 
     const selectSkill=(value)=>{
         //set default values for skill's parameters
-        switch(value){
-            case 0:
-                setSkillsParameters([1,4]);
-                break;
-            case 1:
-                setSkillsParameters([5]);
-            default:
-                break;
-        }
+        setSkillsParameters(skills[value].skillParametersDefaultValues);
 
         //update selected skill
         setSelectedSkill(value);
@@ -68,7 +60,7 @@ const Play=(props)=>{
             setUserData({...props.user,lv:data.lv,exp:data.exp});
 
             //fetch skill leaderboard
-            const [resp,skillRecords] = await getSkillLeaderboard(selectedSkill,skillsParameters,data.country,1);
+            const [resp,skillRecords] = await getSkillLeaderboard(props.user.uid,selectedSkill,skillsParameters,data.country,1);
 
             console.log(skillRecords)
 

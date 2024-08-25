@@ -256,6 +256,8 @@ const skills=[
 		icon:"fi fi-br-indent",
 		description:"In this challenge you will type a set of word, without stopping between one word and the other, in the shortest time possible",
 		parametersDescription:"Select the number of words and chars for each word, you want to play with",
+		skillParameters:["numWords","numChars"],
+		skillParametersDefaultValues:[1,4],
 		playInstructions:"In the following screnn there will be a text area with all the words you have to write and an input field, that ha sto be used to write the words\nFor each word, type it in the input field and press space once done; automatically the input field will be clear and you will be able to type the next word.\nThe current word is underlined by a blue color, instead all past correct words are underlined by a green color and if you type wrong the current word, it will become underlined by red color and you will be able to type it again"
 	},
 	{

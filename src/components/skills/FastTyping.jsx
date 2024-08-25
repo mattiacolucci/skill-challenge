@@ -19,19 +19,21 @@ const FastTyping=(props)=>{
     const [earnedExp,setEarnedExp]=useState(0);   //indicated exp eaerned by playing the single game
     const [levelUp,setLevelUp]=useState(false);  //true if after the game a new level has been reached
     const [earnedExpString,setEarnedExpString]=useState("");  //string which express how the exp earned in a game is distribuited
-    const personalBestSingleWord=1.000;  //personal best single word in sec
-    const personalBestTotTime=10.000;   //personal best tot time in sec
-    const personalBestAvgTime=1.200  //personal best avg time in sec
+    
+    //personal bests
+    const personalBestSingleWord=props.records.PB.fastestWord.record;  //personal best single word in sec
+    const personalBestTotTime=props.records.PB.totTime.record;   //personal best tot time in sec
+    const personalBestAvgTime=props.records.PB.avgTime.record  //personal best avg time in sec
 
     //national bests
-    const nationalBestSingleWord=props.records.NR.fastestWord;
-    const nationalBestTotTime=props.records.NR.totTime;
-    const nationalBestAvgTime=props.records.NR.avgTime;
+    const nationalBestSingleWord=props.records.NR.fastestWord.record;
+    const nationalBestTotTime=props.records.NR.totTime.record;
+    const nationalBestAvgTime=props.records.NR.avgTime.record;
 
     //world bests
-    const worldBestSingleWord=props.records.WR.fastestWord;
-    const worldBestTotTime=props.records.WR.totTime;
-    const worldBestAvgTime=props.records.WR.avgTime;
+    const worldBestSingleWord=props.records.WR.fastestWord.record;
+    const worldBestTotTime=props.records.WR.totTime.record;
+    const worldBestAvgTime=props.records.WR.avgTime.record;
 
     //params
     const num_words=props.skillsParameters[0];
@@ -182,15 +184,26 @@ const FastTyping=(props)=>{
                     //if a record is null it means it has not been already set, so set the distance between actual time and record
                     //equals to null
                     const res={
-                        totalTime:totalTime,distanceTotTimeFromPB:totalTime-personalBestTotTime,
-                        distanceTotTimeFromNR:(nationalBestTotTime!=null)?totalTime-nationalBestTotTime:null, 
-                        distanceTotTimeFromWR:(worldBestTotTime!=null)?totalTime-worldBestTotTime:null,
-                        avgTime:avgTime,distanceAvgTimeFromPB:avgTime-personalBestAvgTime,
-                        distanceAvgTimeFromNR:(nationalBestAvgTime!=null)?avgTime-nationalBestAvgTime:null, 
-                        distanceAvgTimeFromWR: (worldBestAvgTime!=null)?avgTime-worldBestAvgTime:null,
-                        fastestWord:fastestWord, distanceFastestWordFromPB:fastestWord.time-personalBestSingleWord,
-                        distanceFastestWordFromNR:(nationalBestSingleWord!=null)?fastestWord.time-nationalBestSingleWord:null, 
-                        distanceFastestWordFromWR: (worldBestSingleWord!=null)?fastestWord.time-worldBestSingleWord:null
+                        totalTime:totalTime,
+                        avgTime:avgTime,
+                        fastestWord:fastestWord,
+                        distancesFromRecords:{
+                            "WR":{
+                                totTime:(worldBestTotTime!=null)?totalTime-worldBestTotTime:null,
+                                avgTime:(worldBestAvgTime!=null)?avgTime-worldBestAvgTime:null,
+                                fastestWord:(worldBestSingleWord!=null)?fastestWord.time-worldBestSingleWord:null
+                            },
+                            "NR":{
+                                totTime:(nationalBestTotTime!=null)?totalTime-nationalBestTotTime:null,
+                                avgTime:(nationalBestAvgTime!=null)?avgTime-nationalBestAvgTime:null,
+                                fastestWord:(nationalBestSingleWord!=null)?fastestWord.time-nationalBestSingleWord:null
+                            },
+                            "PB":{
+                                totTime:(personalBestTotTime!=null)?totalTime-personalBestTotTime:null,
+                                avgTime:(personalBestAvgTime!=null)?avgTime-personalBestAvgTime:null,
+                                fastestWord:(personalBestSingleWord!=null)?fastestWord.time-personalBestSingleWord:null
+                            }
+                        }
                     };
 
                     setResults({...results,...res});
@@ -227,9 +240,9 @@ const FastTyping=(props)=>{
 
         const [resp,message]=await storeGameResult({
             skill:"FAST TYPING", user:props.user.uid, totTime:results.totalTime,
-            avgTime:results.avgTime, fastestWord:results.fastestWord.time, date: new Date().toISOString(),
-            numWords:num_words,numChars:num_chars
-        });
+            avgTime:results.avgTime, fastestWord:results.fastestWord.time, date: new Date(),
+            numWords:num_words, numChars:num_chars
+        },0,props.skillsParameters,props.records,results.distancesFromRecords);
 
         if(resp){
             //update user lv and exp
@@ -356,27 +369,27 @@ const FastTyping=(props)=>{
                                 <div className="text-xl self-center">{results.totalTime.toFixed(3)+"s"}</div>
                             </div>
                             <div className="h-full flex flex-col basis-[50%] items-center border-l-2 border-white border-opacity-30 px-3">
-                                <div className="w-full flex flex-row justify-center items-center gap-2">
+                                {personalBestTotTime!=null && <div className="w-full flex flex-row justify-center items-center gap-2">
                                     <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] bg-blueOverBg bg-opacity-50 rounded-sm" title="Personal Best">PB</div>
                                     <div className="text-base">{personalBestTotTime.toFixed(3)+"s"}</div>
-                                    <div className={"text-[10px] "+((results.distanceTotTimeFromPB>0)?"text-yellow-gold":"text-mainGreen")}>
-                                        {"("+((results.distanceTotTimeFromPB>0)?"+":"")+results.distanceTotTimeFromPB.toFixed(3)+"s)"}
+                                    <div className={"text-[10px] "+((results.distancesFromRecords.PB.totTime>0)?"text-yellow-gold":"text-mainGreen")}>
+                                        {(results.distancesFromRecords.PB.totTime!=null)?("("+((results.distancesFromRecords.PB.totTime>0)?"+":"")+results.distancesFromRecords.PB.totTime.toFixed(3)+"s)"):""}
                                     </div>
-                                </div>
+                                </div>}
                                 {nationalBestTotTime!=null && 
                                 <div className="w-full flex flex-row justify-center items-center gap-2">
                                     <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] bg-yellow-gold bg-opacity-50 rounded-sm" title="National Record">NR</div>
                                     <div className="text-base">{nationalBestTotTime.toFixed(3)+"s"}</div>
-                                    <div className={"text-[10px] "+((results.distanceTotTimeFromNR>0)?"text-yellow-gold":"text-mainGreen")}>
-                                        {(results.distanceTotTimeFromNR!=null)?("("+((results.distanceTotTimeFromNR>0)?"+":"")+results.distanceTotTimeFromNR.toFixed(3)+"s)"):""}
+                                    <div className={"text-[10px] "+((results.distancesFromRecords.NR.totTime>0)?"text-yellow-gold":"text-mainGreen")}>
+                                        {(results.distancesFromRecords.NR.totTime!=null)?("("+((results.distancesFromRecords.NR.totTime>0)?"+":"")+results.distancesFromRecords.NR.totTime.toFixed(3)+"s)"):""}
                                     </div>
                                 </div>}
                                 {worldBestTotTime!=null && 
                                 <div className="flex flex-row justify-center items-center gap-2">
                                     <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] bg-yellow-gold bg-opacity-65 rounded-sm" title="World Record">WR</div>
                                     <div className="text-base">{worldBestTotTime.toFixed(3)+"s"}</div>
-                                    <div className={"text-[10px] "+((results.distanceTotTimeFromWR>0)?"text-yellow-gold":"text-mainGreen")}>
-                                        {(results.distanceTotTimeFromWR!=null)?("("+((results.distanceTotTimeFromWR>0)?"+":"")+results.distanceTotTimeFromWR.toFixed(3)+"s)"):""}
+                                    <div className={"text-[10px] "+((results.distancesFromRecords.WR.totTime>0)?"text-yellow-gold":"text-mainGreen")}>
+                                        {(results.distancesFromRecords.WR.totTime!=null)?("("+((results.distancesFromRecords.WR.totTime>0)?"+":"")+results.distancesFromRecords.WR.totTime.toFixed(3)+"s)"):""}
                                     </div>
                                 </div>}
                             </div>
@@ -388,26 +401,26 @@ const FastTyping=(props)=>{
                                 <div className="text-xl self-center">{results.avgTime.toFixed(3)+"s"}</div>
                             </div>
                             <div className="h-full flex flex-col basis-[50%] items-center border-l-2 border-white border-opacity-30 px-3">
-                                <div className="flex flex-row justify-center items-center gap-2">
+                                {personalBestAvgTime!=null && <div className="flex flex-row justify-center items-center gap-2">
                                     <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] bg-blueOverBg bg-opacity-50 rounded-sm" title="Personal Best">PB</div>
                                     <div className="text-base">{personalBestAvgTime.toFixed(3)+"s"}</div>
-                                    <div className={"text-[10px] "+((results.distanceAvgTimeFromPB>0)?"text-yellow-gold":"text-mainGreen")}>
-                                        {"("+((results.distanceAvgTimeFromPB>0)?"+":"")+results.distanceAvgTimeFromPB.toFixed(3)+"s)"}
+                                    <div className={"text-[10px] "+((results.distancesFromRecords.PB.avgTime>0)?"text-yellow-gold":"text-mainGreen")}>
+                                        {(results.distancesFromRecords.PB.avgTime!=null)?("("+((results.distancesFromRecords.PB.avgTime>0)?"+":"")+results.distancesFromRecords.PB.avgTime.toFixed(3)+"s)"):""}
                                     </div>
-                                </div>
+                                </div>}
                                 {nationalBestAvgTime!=null && 
                                 <div className="flex flex-row justify-center items-center gap-2">
                                     <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] bg-yellow-gold bg-opacity-50 rounded-sm" title="National Record">NR</div>
                                     <div className="text-base">{nationalBestAvgTime.toFixed(3)+"s"}</div>
-                                    <div className={"text-[10px] "+((results.distanceAvgTimeFromNR>0)?"text-yellow-gold":"text-mainGreen")}>
-                                        {(results.distanceAvgTimeFromNR!=null)?("("+((results.distanceAvgTimeFromNR>0)?"+":"")+results.distanceAvgTimeFromNR.toFixed(3)+"s)"):""}
+                                    <div className={"text-[10px] "+((results.distancesFromRecords.NR.avgTime>0)?"text-yellow-gold":"text-mainGreen")}>
+                                        {(results.distancesFromRecords.NR.avgTime!=null)?("("+((results.distancesFromRecords.NR.avgTime>0)?"+":"")+results.distancesFromRecords.NR.avgTime.toFixed(3)+"s)"):""}
                                     </div>
                                 </div>}
                                 {worldBestAvgTime!=null && <div className="flex flex-row justify-center items-center gap-2">
                                     <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] bg-yellow-gold bg-opacity-65 rounded-sm" title="World Record">WR</div>
                                     <div className="text-base">{worldBestAvgTime.toFixed(3)+"s"}</div>
-                                    <div className={"text-[10px] "+((results.distanceAvgTimeFromWR>0)?"text-yellow-gold":"text-mainGreen")}>
-                                        {(results.distanceAvgTimeFromWR!=null)?("("+((results.distanceAvgTimeFromWR>0)?"+":"")+results.distanceAvgTimeFromWR.toFixed(3)+"s)"):""}
+                                    <div className={"text-[10px] "+((results.distancesFromRecords.WR.avgTime>0)?"text-yellow-gold":"text-mainGreen")}>
+                                        {(results.distancesFromRecords.WR.avgTime!=null)?("("+((results.distancesFromRecords.WR.avgTime>0)?"+":"")+results.distancesFromRecords.WR.avgTime.toFixed(3)+"s)"):""}
                                     </div>
                                 </div>}
                             </div>
@@ -419,25 +432,25 @@ const FastTyping=(props)=>{
                                 <div className="text-xl self-center">{results.fastestWord.time.toFixed(3)+"s"}</div>
                             </div>
                             <div className="h-full flex flex-col basis-[50%] items-center border-l-2 border-white border-opacity-30 px-3">
-                                <div className="flex flex-row justify-center items-center gap-2">
+                                {personalBestSingleWord!=null && <div className="flex flex-row justify-center items-center gap-2">
                                     <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] bg-blueOverBg bg-opacity-50 rounded-sm" title="Personal Best">PB</div>
                                     <div className="text-base">{personalBestSingleWord.toFixed(3)+"s"}</div>
-                                    <div className={"text-[10px] "+((results.distanceFastestWordFromPB>0)?"text-yellow-gold":"text-mainGreen")}>
-                                        {"("+((results.distanceFastestWordFromPB>0)?"+":"")+results.distanceFastestWordFromPB.toFixed(3)+"s)"}
+                                    <div className={"text-[10px] "+((results.distancesFromRecords.PB.fastestWord>0)?"text-yellow-gold":"text-mainGreen")}>
+                                        {(results.distancesFromRecords.PB.fastestWord!=null)?("("+((results.distancesFromRecords.PB.fastestWord>0)?"+":"")+results.distancesFromRecords.PB.fastestWord.toFixed(3)+"s)"):""}
                                     </div>
-                                </div>
+                                </div>}
                                 {nationalBestSingleWord!=null && <div className="flex flex-row justify-center items-center gap-2">
                                     <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] bg-yellow-gold bg-opacity-50 rounded-sm" title="National Record">NR</div>
                                     <div className="text-base">{nationalBestSingleWord.toFixed(3)+"s"}</div>
-                                    <div className={"text-[10px] "+((results.distanceFastestWordFromNR>0)?"text-yellow-gold":"text-mainGreen")}>
-                                        {(results.distanceFastestWordFromNR!=null)?("("+((results.distanceFastestWordFromNR>0)?"+":"")+results.distanceFastestWordFromNR.toFixed(3)+"s)"):""}
+                                    <div className={"text-[10px] "+((results.distancesFromRecords.NR.fastestWord>0)?"text-yellow-gold":"text-mainGreen")}>
+                                        {(results.distancesFromRecords.NR.fastestWord!=null)?("("+((results.distancesFromRecords.NR.fastestWord>0)?"+":"")+results.distancesFromRecords.NR.fastestWord.toFixed(3)+"s)"):""}
                                     </div>
                                 </div>}
                                 {worldBestSingleWord!=null && <div className="flex flex-row justify-center items-center gap-2">
                                     <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] bg-yellow-gold bg-opacity-65 rounded-sm" title="World Record">WR</div>
                                     <div className="text-base">{worldBestSingleWord.toFixed(3)+"s"}</div>
-                                    <div className={"text-[10px] "+((results.distanceFastestWordFromWR>0)?"text-yellow-gold":"text-mainGreen")}>
-                                        {(results.distanceFastestWordFromWR!=null)?("("+((results.distanceFastestWordFromWR>0)?"+":"")+results.distanceFastestWordFromWR.toFixed(3)+"s)"):""}
+                                    <div className={"text-[10px] "+((results.distancesFromRecords.WR.fastestWord>0)?"text-yellow-gold":"text-mainGreen")}>
+                                        {(results.distancesFromRecords.WR.fastestWord!=null)?("("+((results.distancesFromRecords.WR.fastestWord>0)?"+":"")+results.distancesFromRecords.WR.fastestWord.toFixed(3)+"s)"):""}
                                     </div>
                                 </div>}
                             </div>
@@ -447,16 +460,16 @@ const FastTyping=(props)=>{
                     {/*Records badges*/}
                     <div className="h-full flex flex-col justify-around animate-record opacity-0 z-0">
                         <div className={"text-base w-[250px] text-nowrap px-3 py-[6px] text-black WR-clip-path "+
-                            ((results.distanceTotTimeFromWR<0 || results.distanceTotTimeFromWR==null)?"bg-yellow-gold":((results.distanceTotTimeFromNR<0 || results.distanceTotTimeFromNR==null)?"bg-yellow-gold bg-opacity-80":((results.distanceTotTimeFromPB<0)?"bg-blueOverBg bg-opacity-70":"")))}
-                        >{((results.distanceTotTimeFromWR<0 || results.distanceTotTimeFromWR==null)?"NEW WORLD RECORD":((results.distanceTotTimeFromNR<0 || results.distanceTotTimeFromNR==null)?"NEW NATIONAL RECORD":((results.distanceTotTimeFromPB<0)?"NEW PERSONAL BEST":"")))}</div>
+                            ((results.distancesFromRecords.WR.totTime<0 || results.distancesFromRecords.WR.totTime==null)?"bg-yellow-gold":((results.distancesFromRecords.NR.totTime<0 || results.distancesFromRecords.NR.totTime==null)?"bg-yellow-gold bg-opacity-80":((results.distancesFromRecords.PB.totTime<0 || results.distancesFromRecords.PB.totTime==null)?"bg-blueOverBg bg-opacity-70":"")))}
+                        >{((results.distancesFromRecords.WR.totTime<0 || results.distancesFromRecords.WR.totTime==null)?"NEW WORLD RECORD":((results.distancesFromRecords.NR.totTime<0 || results.distancesFromRecords.NR.totTime==null)?"NEW NATIONAL RECORD":((results.distancesFromRecords.PB.totTime<0 || results.distancesFromRecords.PB.totTime==null)?"NEW PERSONAL BEST":"")))}</div>
                         
                         <div className={"text-base w-[250px] text-nowrap px-3 py-[6px] text-black WR-clip-path "+
-                            ((results.distanceAvgTimeFromWR<0 || results.distanceAvgTimeFromWR==null)?"bg-yellow-gold":((results.distanceAvgTimeFromNR<0 || results.distanceAvgTimeFromNR==null)?"bg-yellow-gold bg-opacity-80":((results.distanceAvgTimeFromPB<0)?"bg-blueOverBg bg-opacity-70":"")))}
-                        >{((results.distanceAvgTimeFromWR<0 || results.distanceAvgTimeFromWR==null)?"NEW WORLD RECORD":((results.distanceAvgTimeFromNR<0 || results.distanceAvgTimeFromNR==null)?"NEW NATIONAL RECORD":((results.distanceAvgTimeFromPB<0)?"NEW PERSONAL BEST":"")))}</div>
+                            ((results.distancesFromRecords.WR.avgTime<0 || results.distancesFromRecords.WR.avgTime==null)?"bg-yellow-gold":((results.distancesFromRecords.NR.avgTime<0 || results.distancesFromRecords.NR.avgTime==null)?"bg-yellow-gold bg-opacity-80":((results.distancesFromRecords.PB.avgTime<0 || results.distancesFromRecords.PB.avgTime==null)?"bg-blueOverBg bg-opacity-70":"")))}
+                        >{((results.distancesFromRecords.WR.avgTime<0 || results.distancesFromRecords.WR.avgTime==null)?"NEW WORLD RECORD":((results.distancesFromRecords.NR.avgTime<0 || results.distancesFromRecords.NR.avgTime==null)?"NEW NATIONAL RECORD":((results.distancesFromRecords.PB.avgTime<0 || results.distancesFromRecords.PB.avgTime==null)?"NEW PERSONAL BEST":"")))}</div>
 
                         <div className={"text-base w-[250px] text-nowrap px-3 py-[6px] text-black WR-clip-path "+
-                            ((results.distanceFastestWordFromWR<0 || results.distanceFastestWordFromWR==null)?"bg-yellow-gold":((results.distanceFastestWordFromNR<0 || results.distanceFastestWordFromNR==null)?"bg-yellow-gold bg-opacity-80":((results.distanceFastestWordFromPB<0)?"bg-blueOverBg bg-opacity-70":"")))}
-                        >{((results.distanceFastestWordFromWR<0 || results.distanceFastestWordFromWR==null)?"NEW WORLD RECORD":((results.distanceFastestWordFromNR<0 || results.distanceFastestWordFromNR==null)?"NEW NATIONAL RECORD":((results.distanceFastestWordFromPB<0)?"NEW PERSONAL BEST":"")))}</div>
+                            ((results.distancesFromRecords.WR.fastestWord<0 || results.distancesFromRecords.WR.fastestWord==null)?"bg-yellow-gold":((results.distancesFromRecords.NR.fastestWord<0 || results.distancesFromRecords.NR.fastestWord==null)?"bg-yellow-gold bg-opacity-80":((results.distancesFromRecords.PB.fastestWord<0 || results.distancesFromRecords.PB.fastestWord==null)?"bg-blueOverBg bg-opacity-70":"")))}
+                        >{((results.distancesFromRecords.WR.fastestWord<0 || results.distancesFromRecords.WR.fastestWord==null)?"NEW WORLD RECORD":((results.distancesFromRecords.NR.fastestWord<0 || results.distancesFromRecords.NR.fastestWord==null)?"NEW NATIONAL RECORD":((results.distancesFromRecords.PB.fastestWord<0 || results.distancesFromRecords.PB.fastestWord==null)?"NEW PERSONAL BEST":"")))}</div>
                     </div>
                 </div>
                 
