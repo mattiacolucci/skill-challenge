@@ -2,7 +2,7 @@ import React, { cloneElement, useRef, useState } from 'react';
 import Notice from '../components/Notice.jsx';
 import { checkUserExists, createUserAccount, signInWithGooglePopup } from '../firebase.js';
 import { useNavigate } from 'react-router-dom';
-import { getCountryByIp } from '../utility.js';
+import { getCountryByIp } from '../utility.jsx';
 
 const Login = () => {
     const noticeRef=useRef();

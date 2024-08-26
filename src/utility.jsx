@@ -72,4 +72,33 @@ const getCountryByIp=async ()=>{
     return data.country_name;
 }
 
-export {calculateMaxValueExpByLv, calculateEarnedExpSkill, parseJwt, getCountryByIp};
+const prettyPrintDate=(date)=>{
+    return date.toISOString().split('T')[0];
+}
+
+const prettyPrintParameter=(param)=>{
+    param=param.split(/(?=[A-Z])/).join(" ").toLowerCase();
+    const words = param.split(" ");
+
+    for (let i = 0; i < words.length; i++) {
+        words[i] = words[i][0].toUpperCase() + words[i].substr(1);
+    }
+
+    return words.join(" ");
+}
+
+const TooltipChartCustom=(props)=>{
+    return(
+        <div className="text-[10px] font-light bg-tooltipColor p-1 px-[6px] rounded-sm" >
+            {props.payload.map(v => 
+                <p style={{color:v.color,opacity:0.8}}>
+                    <span className="font-navbar font-semibold">{prettyPrintParameter(v.dataKey)+":"}</span>
+                    <span className="opacity-70">{" "+v.value}</span>
+                </p>)
+            }
+            <div className="text-[10px] text-white text-opacity-65 font-navbar font-semibold">{(props.payload.length!=0)?prettyPrintDate(props.payload[0].payload.date.toDate()):""}</div>
+        </div>
+    )
+}
+
+export {calculateMaxValueExpByLv, calculateEarnedExpSkill, parseJwt, getCountryByIp, TooltipChartCustom, prettyPrintDate, prettyPrintParameter};

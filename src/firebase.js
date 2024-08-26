@@ -188,6 +188,19 @@ const getSkillLeaderboard=async (uidUser, skill, skillParameters, country, limit
     }
 }
 
+//get all user games
+const getAllUserGames=async(user)=>{
+    try{
+        const games=await getDocs(
+            query(collection(db,"games"),where("user","==",user))
+        );
+
+        return [true,games.docs.map(g=>g.data())];
+    }catch(e){  
+        return [false,e.message];
+    }
+}
+
 //get last games of the user
 const getLastGamesUser=async(skill,skillParameters,user,numGames)=>{
     try{
@@ -260,7 +273,7 @@ const storeGameResult=async (result,skillIndex,skillParameters,records,isRecord)
                                         ...userSkillPastRecords,
                                         {
                                             recordType:key, recordParameter:key2,
-                                            skillParameters:skillParameters.map((p,index)=>{return {[skills[skillIndex].skillParameters[index]]:p}}),
+                                            skillParameters:skillParameters.map((p,index)=>{return {[skills[skillIndex].skillParametersLongName[index]]:p}}),
                                             value: result[key2], date:new Date()
                                         }
                                     ]}
@@ -326,4 +339,4 @@ const updateUserUsername=async(username)=>{
 }
 
 export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillLeaderboard,
-    storeGameResult,updateUserLvExp,updateUserCountry,updateUserUsername};
+    storeGameResult,updateUserLvExp,updateUserCountry,updateUserUsername,getAllUserGames};

@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import words_list from "../../assets/words.json";
 import Chronometer from "../Chronometer";
 import { Line, LineChart, XAxis, YAxis } from "recharts";
-import { calculateEarnedExpSkill } from "../../utility";
+import { calculateEarnedExpSkill } from "../../utility.jsx";
 import UserLevel from "../UserLevel";
-import SoftLoading from "../SoftLoading";
 import Loading from "../Loading";
 import { storeGameResult, updateUserLvExp } from "../../firebase";
 import { useNavigate } from "react-router-dom";
@@ -12,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 const FastTyping=(props)=>{
     //user settings
     const language="IT";
-    const username=props.user.displayName;
+    const username=props.user.username;
     const userProfileImage=props.user.photoURL;
     const [expValue,setExpValue]=useState(props.user.exp);
     const [userLv,setUserLv]=useState(props.user.lv);  //level of the user
@@ -481,7 +480,7 @@ const FastTyping=(props)=>{
                 
                 </>}
 
-                {isSoftLoading && <SoftLoading/>}
+                {isSoftLoading && <Loading/>}
             </div>
             </>
         )

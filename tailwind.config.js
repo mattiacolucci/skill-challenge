@@ -25,7 +25,8 @@ export default withMT({
         'blueOverBg':"#93c5fd",
         'yellow-gold':"#FEE101",
         'darkBlue':"#1c158f",
-        'resultsBg':"#0c0b1f"
+        'resultsBg':"#0c0b1f",
+        'tooltipColor':"#16153b"
       },
       keyframes:{
         'record':{

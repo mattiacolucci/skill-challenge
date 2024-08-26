@@ -9,7 +9,6 @@ const Navbar=(props)=>{
             {props.isLogged &&
                 <Link to="/profile" className="ml-auto"><div className="flex items-center h-[30px] gap-3 bg-white bg-opacity-30 px-3 rounded-md">
                     <img src={props.user.photoURL} className="w-[20px] h-[20px] rounded-full"/>
-                    <div className="text-sm text-white select-none max-w-[150px] line-clamp-1 font-default">{props.user.displayName.toUpperCase()}</div>
                 </div></Link>
             }
             {!props.isLogged && <>

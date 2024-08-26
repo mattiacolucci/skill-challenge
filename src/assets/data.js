@@ -250,6 +250,30 @@ const countries = [
 	"Åland Islands"
 ];
 
+/**
+ * For each skill we have the following data
+ * - title
+ * 	title of the skill
+ * - icon
+ * 	icon of the skill
+ * - decsription
+ * 	description of what consists the skill
+ * - parametersDescription
+ * 	description of parameters of the skill
+ * - skillParameters
+ * 	array of string representing the names of each skill parameter
+ * - skillParametersLongName
+ * 	array of strings which represent the name of each skill parameter written in a long way
+ * - skillParametersDefaulValues
+ * 	array which represents the default values of each parameter of the skill
+ * - skillParametersPossibleValues
+ * 	array of possible combinations of values for each skill parameter
+ * - skillResultsParameters
+ * 	array of string representing what is measured and showed in results after a game done on the skill
+ * - playInstructions
+ *  instructions to play the skill
+ */
+
 const skills=[
 	{
 		title:"FAST TYPING",
@@ -257,14 +281,31 @@ const skills=[
 		description:"In this challenge you will type a set of word, without stopping between one word and the other, in the shortest time possible",
 		parametersDescription:"Select the number of words and chars for each word, you want to play with",
 		skillParameters:["numWords","numChars"],
+		skillParametersLongName:["number of words","number of chars"],
 		skillParametersDefaultValues:[1,4],
+		skillParametersPossibleValues:[
+			[1,4],
+			[4,4],
+			[5,4]
+		],
+		skillResultsParameters:["totTime","avgTime","fastestWord"],
 		playInstructions:"In the following screnn there will be a text area with all the words you have to write and an input field, that ha sto be used to write the words\nFor each word, type it in the input field and press space once done; automatically the input field will be clear and you will be able to type the next word.\nThe current word is underlined by a blue color, instead all past correct words are underlined by a green color and if you type wrong the current word, it will become underlined by red color and you will be able to type it again"
 	},
 	{
 		title:"REACTIVE CLICK",
 		icon:"fi fi-sr-interactive",
 		description:"In this challenge you will click, in the shortest time possible, on some circles that will appear in random positions on the screen",
-		parametersDescription:"Select the number of circles that have to appear on the screen"
+		parametersDescription:"Select the number of circles that have to appear on the screen",
+		skillParameters:["numWords","numChars"],
+		skillParametersLongName:["number of words","number of chars"],
+		skillParametersDefaultValues:[1,4],
+		skillParametersPossibleValues:[
+			[1,4],
+			[4,4],
+			[5,4]
+		],
+		skillResultsParameters:["totTime","avgTime","fastestWord"],
+		playInstructions:"In the following screnn there will be a text area with all the words you have to write and an input field, that ha sto be used to write the words\nFor each word, type it in the input field and press space once done; automatically the input field will be clear and you will be able to type the next word.\nThe current word is underlined by a blue color, instead all past correct words are underlined by a green color and if you type wrong the current word, it will become underlined by red color and you will be able to type it again"
 	},
 	{
 		title:"TIME STOPPER",
@@ -274,4 +315,7 @@ const skills=[
 	}
 ]
 
-export {countries,skills};
+//color of lines to print in charts
+const lineChartColors=["#16a34a","#dc2626","#1d4ed8"]
+
+export {countries,skills,lineChartColors};

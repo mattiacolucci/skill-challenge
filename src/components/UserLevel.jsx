@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { calculateMaxValueExpByLv } from "../utility";
+import { calculateMaxValueExpByLv } from "../utility.jsx";
 
 const UserLevel = (props)=>{
     const [maxValueExp,setMaxValueExp]=useState(calculateMaxValueExpByLv(props.userLv));
