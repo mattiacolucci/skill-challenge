@@ -81,7 +81,9 @@ const prettyPrintParameter=(param)=>{
     const words = param.split(" ");
 
     for (let i = 0; i < words.length; i++) {
-        words[i] = words[i][0].toUpperCase() + words[i].substr(1);
+        if(words[i][0]!=undefined){
+            words[i] = words[i][0].toUpperCase() + words[i].substr(1);
+        }
     }
 
     return words.join(" ");
@@ -101,4 +103,8 @@ const TooltipChartCustom=(props)=>{
     )
 }
 
-export {calculateMaxValueExpByLv, calculateEarnedExpSkill, parseJwt, getCountryByIp, TooltipChartCustom, prettyPrintDate, prettyPrintParameter};
+function numberMod(n, m) {
+    return ((n % m) + m) % m;
+  }
+
+export {calculateMaxValueExpByLv, calculateEarnedExpSkill, parseJwt, getCountryByIp, TooltipChartCustom, prettyPrintDate, prettyPrintParameter, numberMod};

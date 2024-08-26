@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { Option, Select } from "@material-tailwind/react";
 import { lineChartColors, skills } from "../assets/data";
 import { CartesianGrid, Legend, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
-import { prettyPrintDate, prettyPrintParameter, TooltipChartCustom } from "../utility.jsx";
+import { numberMod, prettyPrintDate, prettyPrintParameter, TooltipChartCustom } from "../utility.jsx";
 
 const Profile=(props)=>{
     const [isLoading,setIsLoading]=useState(true);
@@ -27,7 +27,7 @@ const Profile=(props)=>{
     //last games
     const [lastGamesSelectedSkill,setLastGameSelectedSkill]=useState(0);
     const [lastGamesSelectedParameters,setLastGamesSelectedParameters]=useState(0);
-    const [filteredGamesData,setFilteredGamesData]=useState({});
+    const [filteredGamesData,setFilteredGamesData]=useState([]);
 
     const noticeRef=useRef();
     const navigate=useNavigate();
@@ -103,17 +103,22 @@ const Profile=(props)=>{
         //get all games which has selected parameters and selected skill
         for(var i=0;i<games.length;i++){
             var addGame=true;
+            const selectedSkillTitle=skills[lastGamesSelectedSkill].title;
+            const numberOfSelectedSkillsParameters=skills[lastGamesSelectedSkill].skillParameters.length;
 
             //if the game is relative to the non selected skill, do not add it to filtered games
-            if(games[i].skill!=skills[lastGamesSelectedSkill].title){
+            if(games[i].skill!=selectedSkillTitle){
                 addGame=false;
                 continue;
             }
 
             //for each skill parameter
-            for(var j=0;j<skills[lastGamesSelectedSkill].skillParameters;j++){
+            for(var j=0;j<numberOfSelectedSkillsParameters;j++){
+                const selectedSkillsParameters=skills[lastGamesSelectedSkill].skillParametersPossibleValues[lastGamesSelectedParameters];
+                const JthParameterName=skills[lastGamesSelectedSkill].skillParameters[j];
+
                 //if the skill parameter of the gameis different from the selected one, do not add it to the filtered games
-                if(games[i][skills[lastGamesSelectedSkill].skillParameters[j]]!=lastGamesSelectedParameters[j]){
+                if(games[i][JthParameterName]!=selectedSkillsParameters[j]){
                     addGame=false;
                     continue;
                 }
@@ -124,23 +129,42 @@ const Profile=(props)=>{
             }
         }
 
+        //sort games by date from the most recent
+        filteredGames=filteredGames.sort((g1,g2)=>g2.date.toDate().getTime()-g1.date.toDate().getTime())
+
+        //get last five games
+        filteredGames=filteredGames.slice(0,5)
+        
+        //reverse games
+        filteredGames=filteredGames.reverse();
+
         setFilteredGamesData(filteredGames);
     }
 
-    //recalulate filtered games every time the skill selected changes
+    //recalulate filtered games every time the skill selected changes or selected skill's parameters change
     useEffect(()=>{
         if(Object.keys(userData).length!=0 && userData.games!=undefined){
             //recalulate filteredGames
             filterGames(userData.games);
         }
-    },[lastGamesSelectedSkill])
+    },[lastGamesSelectedSkill, lastGamesSelectedParameters])
 
     const goNextSelectedSkill=()=>{
-        setLastGameSelectedSkill((lastGamesSelectedSkill+1)%skills.length);
+        setLastGameSelectedSkill(numberMod(lastGamesSelectedSkill+1,skills.length));
     }
 
     const goPreviousSelectedSkill=()=>{
-        setLastGameSelectedSkill((lastGamesSelectedSkill-1)%skills.length);
+        setLastGameSelectedSkill(numberMod(lastGamesSelectedSkill-1,skills.length));
+    }
+
+    const goNextSelectedSkillsParameters=()=>{
+        const numOfSkillsParameters=skills[lastGamesSelectedSkill].skillParametersPossibleValues.length;
+        setLastGamesSelectedParameters(numberMod(lastGamesSelectedParameters+1,numOfSkillsParameters));
+    }
+
+    const goPreviousSelectedSkillsParameters=()=>{
+        const numOfSkillsParameters=skills[lastGamesSelectedSkill].skillParametersPossibleValues.length;
+        setLastGamesSelectedParameters(numberMod(lastGamesSelectedParameters-1,numOfSkillsParameters));
     }
 
     if(isLoading){
@@ -260,17 +284,20 @@ const Profile=(props)=>{
 
                         <div className="w-full flex flex-col items-center gap-1">
                             <div className="w-full flex flex-row items-center justify-center gap-1">
-                                <div className="cursor-pointer text-xl" onClick={()=>goPreviousSelectedSkill()}>⮘</div>
+                                <div className="cursor-pointer text-xl select-none" onClick={()=>goPreviousSelectedSkill()}>⮘</div>
                                 <div className="w-[200px] text-center text-white font-navbar">{skills[lastGamesSelectedSkill].title}</div>
-                                <div className="cursor-pointer text-xl" onClick={()=>goNextSelectedSkill()}>⮚</div>
+                                <div className="cursor-pointer text-xl select-none" onClick={()=>goNextSelectedSkill()}>⮚</div>
                             </div>
 
                             <div className="w-full flex flex-row items-center justify-center gap-1">
-                                <div className="cursor-pointer text-xl">⮘</div>
+                                <div className="cursor-pointer text-xl select-none" onClick={()=>goPreviousSelectedSkillsParameters()}>⮘</div>
                                 <div className="w-[200px] text-center text-white font-navbar">
-                                    <span className="text-[13px] text-white text-opacity-65">{skills[lastGamesSelectedSkill].skillParameters.join("  -  ")}</span><br/>
-                                    {skills[lastGamesSelectedSkill].skillParametersPossibleValues[lastGamesSelectedParameters].join("  -  ")}</div>
-                                <div className="cursor-pointer text-xl">⮚</div>
+                                    <span className="text-[13px] text-white text-opacity-65">
+                                        {prettyPrintParameter(skills[lastGamesSelectedSkill].skillParameters.join("  -  "))}
+                                    </span><br/>
+                                    {skills[lastGamesSelectedSkill].skillParametersPossibleValues[lastGamesSelectedParameters].join("  -  ")}
+                                </div>
+                                <div className="cursor-pointer text-xl select-none" onClick={()=>goNextSelectedSkillsParameters()}>⮚</div>
                             </div>
                             
                             <div className="mt-5">
@@ -278,12 +305,13 @@ const Profile=(props)=>{
                                     <CartesianGrid strokeDasharray="2" strokeOpacity={0.3}/>
                                     <XAxis minTickGap={10} dataKey="date" type="category" interval={"equidistantPreserveStartEnd"} label={{ value: 'Date', angle: 0, position: 'insideBottomRight', offset:7, fontSize:"12px"}} style={{ fontSize: '12px'}}/>
                                     <YAxis minTickGap={8} domain={[0, 'dataMax + 0.5']} type={"number"} interval={"equidistantPreserveStartEnd"} label={{ value: 'Value', angle: -90, fontSize:"11px", position:'insideBottom', offset:35}} style={{ fontSize: '12px'}}/>
-                                    <Tooltip cursor={{stroke: "#BABABA",strokeWidth: 1,strokeDasharray: "5 5"}} wrapperStyle={{ outline: "none" }} content={TooltipChartCustom} />
+                                    <Tooltip cursor={{stroke: "#BABABA",strokeWidth: 1,strokeDasharray: "5 5"}} wrapperStyle={{ outline: "none" }} content={(params)=>TooltipChartCustom(params)} />
                                     <Legend iconSize={10} formatter={(value, entry, index) => <span className="text-xs font-navbar opacity-75">{prettyPrintParameter(value)}</span>}/>
                                     {skills[lastGamesSelectedSkill].skillResultsParameters.map((param,index)=>{
                                         return <Line type="monotone" dataKey={param} stroke={lineChartColors[index]} strokeWidth={1.5}/>
                                     })}
                                 </LineChart>}
+                                {filteredGamesData.length==0 && <div className="text-white text-opacity-65">NO GAMES FOUND</div>}
                             </div>
                         </div>
 
