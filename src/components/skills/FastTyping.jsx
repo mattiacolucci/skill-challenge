@@ -5,7 +5,7 @@ import { Line, LineChart, XAxis, YAxis } from "recharts";
 import { calculateEarnedExpSkill } from "../../utility.jsx";
 import UserLevel from "../UserLevel";
 import Loading from "../Loading";
-import { storeGameResult, updateUserLvExp } from "../../firebase";
+import { storeGameResult, updateUserLvExpAndGames } from "../../firebase";
 import { useNavigate } from "react-router-dom";
 
 const FastTyping=(props)=>{
@@ -238,14 +238,14 @@ const FastTyping=(props)=>{
         setIsSoftLoading(true);
 
         const [resp,message]=await storeGameResult({
-            skill:"FAST TYPING", user:props.user.uid, totTime:results.totalTime,
-            avgTime:results.avgTime, fastestWord:results.fastestWord.time, date: new Date(),
-            numWords:num_words, numChars:num_chars
+            skill:"FAST TYPING", user:props.user.uid, totTime:parseFloat(results.totalTime.toFixed(3)),
+            avgTime:parseFloat(results.avgTime.toFixed(3)), fastestWord:parseFloat(results.fastestWord.time.toFixed(3)), 
+            date: new Date(),numWords:parseInt(num_words), numChars:parseInt(num_chars)
         },0,props.skillsParameters,props.records,results.distancesFromRecords);
 
         if(resp){
             //update user lv and exp
-            const [response,message]=await updateUserLvExp(newLevel,newExp);
+            const [response,message]=await updateUserLvExpAndGames(newLevel,newExp);
 
             if(response){  //if lv and exp have been updated
                 //go to results screen

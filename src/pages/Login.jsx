@@ -14,7 +14,7 @@ const Login = () => {
         const googleResponse = await googleSignIn();
 
         //check if the authed user exists in the db and so if this is its first login
-        if(await checkUserExists()){
+        if(await checkUserExists(googleResponse.user.uid)){
             //if login went good and user exists display the notice and after them, go to the home
             noticeRef.current.triggerNotice("Welcome "+googleResponse.user.displayName+"!",()=>navigate("/"));
         }else{

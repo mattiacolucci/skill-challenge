@@ -43,6 +43,7 @@ const createUserAccount=async (country)=>{
             country:country,
             lv:1,
             exp:0,
+            numGames:0,
             username:auth.currentUser.displayName,
             records:{},
             creationDate:new Date()
@@ -220,7 +221,7 @@ const getLastGamesUser=async(skill,skillParameters,user,numGames)=>{
         if(lastGames!=[] && !lastGames.empty){
             return [true,lastGames.docs.map(g=>{return {...g.data(),gameId:g.id}})];
         }else{
-            return [false,"No games"];
+            return [true,[]];
         }
     }catch(e){
         return [false,e.message];
@@ -252,17 +253,17 @@ const storeGameResult=async (result,skillIndex,skillParameters,records,isRecord)
         //get ids of games which are current PB, NR and WR
         //and get ids of games which was PB, NR and WR before the currect game was played
         var recordIds=[]
-        for (const key in records){
-            for(const key2 in records[key]){
-                if(records[key][key2].gameId!=null){
+        for (const recordType in records){
+            for(const recordParameter in records[recordType]){
+                if(records[recordType][recordParameter].gameId!=null){
                     //get record game id
-                    recordIds.push(records[key][key2].gameId);
+                    recordIds.push(records[recordType][recordParameter].gameId);
 
                     //check if this record had been surpassed by the current game to store
-                    if(isRecord[key][key2]<0){  //if the current game to stre is a new record
+                    if(isRecord[recordType][recordParameter]<0 || isRecord[recordType][recordParameter]==null){  //if the current game to store is a new record for recordParameter
 
                         //store in the user profile that he is done a new record. This is done only if the new record is not a PB
-                        if(key!="PB"){
+                        if(recordType!="PB"){
                             await runTransaction(db,async(transaction)=>{
                                 const currUser = await transaction.get(doc(db,"users",auth.currentUser.uid));
 
@@ -272,9 +273,9 @@ const storeGameResult=async (result,skillIndex,skillParameters,records,isRecord)
                                     records:{...currUser.data().records,[result.skill]:[
                                         ...userSkillPastRecords,
                                         {
-                                            recordType:key, recordParameter:key2,
+                                            recordType:recordType, recordParameter:recordParameter,
                                             skillParameters:skillParameters.map((p,index)=>{return {[skills[skillIndex].skillParametersLongName[index]]:p}}),
-                                            value: result[key2], date:new Date()
+                                            value: result[recordParameter], date:new Date()
                                         }
                                     ]}
                                 })
@@ -289,7 +290,7 @@ const storeGameResult=async (result,skillIndex,skillParameters,records,isRecord)
         recordIds=[...new Set(recordIds)];
 
         //check if the less recent game is the actual personal best of the user or is a national or world record
-        if(!recordIds.includes(lessRecentGame.gameId) && lastGames.length>4){  //if the less recent game is not a record and if the user played at least 5 games, i can delete it since it is not more a useful game
+        if(lessRecentGame!=undefined && !recordIds.includes(lessRecentGame.gameId) && lastGames.length>4){  //if the less recent game is not a record and if the user played at least 5 games, i can delete it since it is not more a useful game
             await deleteDoc(doc(db,"games",lessRecentGame.gameId));
         }
 
@@ -305,11 +306,15 @@ const storeGameResult=async (result,skillIndex,skillParameters,records,isRecord)
     }
 }
 
-const updateUserLvExp=async(lv,exp)=>{
+const updateUserLvExpAndGames=async(lv,exp)=>{
     try{
-        await updateDoc(doc(db,"users",auth.currentUser.uid),{
-            lv:lv,exp:exp
-        });
+        await runTransaction(db,async(transaction)=>{
+            const currUser = await transaction.get(doc(db,"users",auth.currentUser.uid));
+
+            transaction.update(doc(db,"users",auth.currentUser.uid),{
+                lv:lv,exp:exp,numGames:currUser.data().numGames+1
+            });
+        })
         return [true,"Success"];
     }catch(e){
         return [false,e.message];
@@ -339,4 +344,4 @@ const updateUserUsername=async(username)=>{
 }
 
 export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillLeaderboard,
-    storeGameResult,updateUserLvExp,updateUserCountry,updateUserUsername,getAllUserGames};
+    storeGameResult,updateUserLvExpAndGames,updateUserCountry,updateUserUsername,getAllUserGames};

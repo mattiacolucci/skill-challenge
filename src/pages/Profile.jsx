@@ -3,7 +3,7 @@ import Container from "../components/Container";
 import Navbar from "../components/Navbar";
 import Loading from "../components/Loading";
 import { useCountries } from "use-react-countries";
-import { getAllUserGames, getUserData, signOutWithGoogle, updateUserCountry, updateUserUsername } from "../firebase";
+import { getAllUserGames, getSkillLeaderboard, getUserData, signOutWithGoogle, updateUserCountry, updateUserUsername } from "../firebase";
 import UserLevel from "../components/UserLevel";
 import Notice from "../components/Notice";
 import { useNavigate } from "react-router-dom";
@@ -28,6 +28,9 @@ const Profile=(props)=>{
     const [lastGamesSelectedSkill,setLastGameSelectedSkill]=useState(0);
     const [lastGamesSelectedParameters,setLastGamesSelectedParameters]=useState(0);
     const [filteredGamesData,setFilteredGamesData]=useState([]);
+    const [filteredPersonalBests,setFilteredPersonalBests]=useState({});
+    const [userPosition,setUserPosition]=useState([]);
+    const [isLoadingPosition,setIsLoadingPosition]=useState(true);
 
     const noticeRef=useRef();
     const navigate=useNavigate();
@@ -48,7 +51,10 @@ const Profile=(props)=>{
                     setNewCountry(usrData.country);
                     setNewUsername(usrData.username);
 
-                    //filter last games based on selected parameters
+                    //calculate user position based on default skill and parameters selected
+                    calculateUserPosition(usrData);
+
+                    //filter last games based on selected default skill and parameters
                     filterGames(games);
                 }else{
                     console.log(games);
@@ -141,28 +147,113 @@ const Profile=(props)=>{
         setFilteredGamesData(filteredGames);
     }
 
-    //recalulate filtered games every time the skill selected changes or selected skill's parameters change
+    //function which gets personal bests of the user based on skills and its parameters selected
+    const filterPersonalBests=(gamesAlreadyFiltered)=>{
+        var personalBests={};
+        const resultsParameters=skills[lastGamesSelectedSkill].skillResultsParameters;
+
+        //if the user has not done games according to selected skill and parameters, set empty personal bests and return
+        if(gamesAlreadyFiltered.length==0){
+            setFilteredPersonalBests(personalBests);
+            return;
+        }
+
+        for(var i in resultsParameters){
+            const copyOfGamesFiltered=structuredClone(gamesAlreadyFiltered);
+            personalBests[resultsParameters[i]]=copyOfGamesFiltered.sort((a,b)=>a[resultsParameters[i]]-b[resultsParameters[i]])[0][resultsParameters[i]];
+        }
+
+        setFilteredPersonalBests(personalBests);
+    }
+
+    const calculateUserPosition=(usrData=userData)=>{
+        setIsLoadingPosition(true);
+
+        //if I have not yet calculate user position for selected skill and parameters
+        if(userPosition[lastGamesSelectedSkill]==undefined || userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters]==undefined){
+            //get leaderboard with top 1000 games done in the selected skill and selected parameters
+            getSkillLeaderboard(
+                props.user.uid,lastGamesSelectedSkill,
+                skills[lastGamesSelectedSkill].skillParametersPossibleValues[lastGamesSelectedParameters],
+                usrData.country,1000
+            ).then(([resp,leaderboardSkill])=>{
+                var userPositionLeaderboard={"WR":{},"NR":{}};
+
+                if(resp){
+                    //get only users of games read from the db
+                    const resultsParameters=skills[lastGamesSelectedSkill].skillResultsParameters;
+
+                    for(const i in resultsParameters){
+                        const param=resultsParameters[i];
+
+                        userPositionLeaderboard.WR[param]=(leaderboardSkill.WR[param].user!=null)?leaderboardSkill.WR[param].user.indexOf(props.user.uid)+1:-1;
+                        userPositionLeaderboard.NR[param]=(leaderboardSkill.NR[param].user!=null)?leaderboardSkill.NR[param].user.indexOf(props.user.uid)+1:-1;
+                    }
+            
+                    
+                }else{
+                    for(const i in resultsParameters){
+                        userPositionLeaderboard.WR[resultsParameters[i]]=-1;
+                        userPositionLeaderboard.NR[resultsParameters[i]]=-1;
+                    }
+                }
+
+                var copyUserPosition=structuredClone(userPosition);
+
+                //if I have not calculated any user position for the selcted skill
+                if(copyUserPosition[lastGamesSelectedSkill]==undefined){
+                    //set an empty array
+                    copyUserPosition[lastGamesSelectedSkill]=[]
+                }
+                copyUserPosition[lastGamesSelectedSkill][lastGamesSelectedParameters]=userPositionLeaderboard;
+
+                setUserPosition(copyUserPosition);
+
+                //hide loading for user position
+                setIsLoadingPosition(false);
+            });
+        }else{
+            //hide loading for user position
+            setIsLoadingPosition(false);
+        }
+    }
+
+    //recalulate filtered games and user position every time the skill selected changes or selected skill's parameters change
     useEffect(()=>{
         if(Object.keys(userData).length!=0 && userData.games!=undefined){
+            //recalculate user position in world and national leaderboard
+            calculateUserPosition();
+
             //recalulate filteredGames
             filterGames(userData.games);
         }
     },[lastGamesSelectedSkill, lastGamesSelectedParameters])
 
+    //recalculate filtered personal bests every time the filtered games changes
+    useEffect(()=>{
+        filterPersonalBests(filteredGamesData);
+    },[filteredGamesData])
+
     const goNextSelectedSkill=()=>{
+        setIsLoadingPosition(true);
         setLastGameSelectedSkill(numberMod(lastGamesSelectedSkill+1,skills.length));
     }
 
     const goPreviousSelectedSkill=()=>{
+        setIsLoadingPosition(true);
         setLastGameSelectedSkill(numberMod(lastGamesSelectedSkill-1,skills.length));
     }
 
     const goNextSelectedSkillsParameters=()=>{
+        setIsLoadingPosition(true);
+
         const numOfSkillsParameters=skills[lastGamesSelectedSkill].skillParametersPossibleValues.length;
         setLastGamesSelectedParameters(numberMod(lastGamesSelectedParameters+1,numOfSkillsParameters));
     }
 
     const goPreviousSelectedSkillsParameters=()=>{
+        setIsLoadingPosition(true);
+
         const numOfSkillsParameters=skills[lastGamesSelectedSkill].skillParametersPossibleValues.length;
         setLastGamesSelectedParameters(numberMod(lastGamesSelectedParameters-1,numOfSkillsParameters));
     }
@@ -175,11 +266,14 @@ const Profile=(props)=>{
                 <Navbar isLogged={props.isSignedIn} user={props.user}/>
                 
                 <div className="w-screen flex flex-row mt-5">
-                    <div className="basis-[33%] flex flex-col items-center gap-4">
+                    <div className="basis-[33%] flex flex-col items-center gap-3">
                         <img src={userData.profileImage} className="w-[80px] h-[80px] rounded-full border-2 border-blueOverBg"/>
-                        <div className="text-white font-default text-2xl w-full line-clamp-1 text-center">{userData.username.toUpperCase()}</div>
+                        <div className="text-white font-default text-2xl w-full line-clamp-2 text-center">
+                            {userData.username.toUpperCase()}<br/>
+                            <span className="text-xs text-white text-opacity-60 font-navbar leading-1">EST. {prettyPrintDate(userData.creationDate.toDate())}</span>
+                        </div>
 
-                        {showEditUsername && <input type="text" className="w-[50%] p-1 pl-3 rounded-sm outline-none bg-white bg-opacity-30 font-navbar" value={newUsername} onChange={(e)=>setNewUsername(e.target.value)}/>}
+                        {showEditUsername && <input type="text" className="w-[50%] p-1 pl-3 rounded-sm outline-none bg-white bg-opacity-20 font-navbar" value={newUsername} onChange={(e)=>setNewUsername(e.target.value)}/>}
 
                         {showEditUsername && 
                         <div className="flex flex-row items-center gap-3">
@@ -245,7 +339,9 @@ const Profile=(props)=>{
                         <UserLevel className="items-center" userLv={userData.lv} expValue={userData.exp} userProfileImage={userData.profileImage}
                         username={userData.name}/>
 
-                        <div className="text-white font-default text-2xl mt-7">RECORDS</div>
+                        <div className="text-white font-default text-2xl mt-7">RECORDS 
+                            <span className="text-xs text-white text-opacity-60 ml-2 font-navbar">({Object.keys(userData.records).map(skill=>userData.records[skill].length).reduce((sum,a)=>sum+a,0)})</span>
+                        </div>
 
                         <div className="h-[150px] px-2 w-[200px] flex flex-col gap-2 items-center overflow-auto pb-3 shadow-[5px_5px_10px_-1px_rgba(29,78,216,0.4)]">
                             {Object.keys(userData.records).map((skill)=>{
@@ -280,24 +376,27 @@ const Profile=(props)=>{
 
 
                     <div className="basis-[33%] flex flex-col items-center gap-4">
-                        <div className="text-white text-2xl font-default">LAST GAMES</div>
+                        <div className="text-white text-2xl font-default">
+                            LAST GAMES
+                            <span className="text-xs text-white text-opacity-60 ml-2 font-navbar" title="Total Games Played">({userData.numGames})</span>
+                        </div>
 
                         <div className="w-full flex flex-col items-center gap-1">
                             <div className="w-full flex flex-row items-center justify-center gap-1">
-                                <div className="cursor-pointer text-xl select-none" onClick={()=>goPreviousSelectedSkill()}>⮘</div>
+                                <div className="cursor-pointer text-xl select-none transition-all duration-300 hover:scale-125" onClick={()=>(!isLoadingPosition)?goPreviousSelectedSkill():""}>⮘</div>
                                 <div className="w-[200px] text-center text-white font-navbar">{skills[lastGamesSelectedSkill].title}</div>
-                                <div className="cursor-pointer text-xl select-none" onClick={()=>goNextSelectedSkill()}>⮚</div>
+                                <div className="cursor-pointer text-xl select-none transition-all duration-300 hover:scale-125" onClick={()=>(!isLoadingPosition)?goNextSelectedSkill():""}>⮚</div>
                             </div>
 
                             <div className="w-full flex flex-row items-center justify-center gap-1">
-                                <div className="cursor-pointer text-xl select-none" onClick={()=>goPreviousSelectedSkillsParameters()}>⮘</div>
+                                <div className="cursor-pointer text-xl select-none transition-all duration-300 hover:scale-125" onClick={()=>(!isLoadingPosition)?goPreviousSelectedSkillsParameters():""}>⮘</div>
                                 <div className="w-[200px] text-center text-white font-navbar">
                                     <span className="text-[13px] text-white text-opacity-65">
                                         {prettyPrintParameter(skills[lastGamesSelectedSkill].skillParameters.join("  -  "))}
                                     </span><br/>
                                     {skills[lastGamesSelectedSkill].skillParametersPossibleValues[lastGamesSelectedParameters].join("  -  ")}
                                 </div>
-                                <div className="cursor-pointer text-xl select-none" onClick={()=>goNextSelectedSkillsParameters()}>⮚</div>
+                                <div className="cursor-pointer text-xl select-none transition-all duration-300 hover:scale-125" onClick={()=>(!isLoadingPosition)?goNextSelectedSkillsParameters():""}>⮚</div>
                             </div>
                             
                             <div className="mt-5">
@@ -311,14 +410,71 @@ const Profile=(props)=>{
                                         return <Line type="monotone" dataKey={param} stroke={lineChartColors[index]} strokeWidth={1.5}/>
                                     })}
                                 </LineChart>}
-                                {filteredGamesData.length==0 && <div className="text-white text-opacity-65">NO GAMES FOUND</div>}
+                                {filteredGamesData.length==0 && <div className="text-white text-opacity-65 mb-10">NO GAMES FOUND</div>}
                             </div>
+
+                            {Object.keys(filteredPersonalBests).length!=0 && <>
+                            <div className="text-white text-2xl font-default mt-2">PERSONAL BESTS</div>
+
+                            
+                            <div className="flex flex-col gap-[6px] mt-2">
+                                {Object.keys(filteredPersonalBests).map((param)=>{
+                                    return(
+                                        <div className="flex flex-row items-center gap-4" key={"pesronal"+param}>
+                                            <div className="text-white text-opacity-75 bg-tooltipColor rounded-sm p-1 px-2 text-sm font-navbar min-w-[100px]">{prettyPrintParameter(param)}</div>
+                                            <div className="text-white text-opacity-70 text-sm min-w-[55px] text-center bg-white bg-opacity-5 p-1 px-2 rounded-sm">{filteredPersonalBests[param]}</div>
+                                        </div>
+                                    )
+                                })}
+                            </div></>}
                         </div>
 
                     </div>
 
 
                     <div className="basis-[33%] flex flex-col items-center gap-4">
+
+                        <div className="flex flex-col items-center gap-1 p-2 px-4 rounded-md bg-tooltipColor">
+                            {!isLoadingPosition &&
+                                <>
+                                <div className="text-white text-xl font-default mt-2">USER POSITION</div>
+
+                                {skills[lastGamesSelectedSkill].skillResultsParameters.map((param)=>{
+                                    return(<>
+                                        <div className="w-full flex flex-row items-center gap-2 mt-3">
+                                        <div className="flex-1 h-[1px] bg-white bg-opacity-70"></div>
+                                            <div className="text-white text-opacity-70 font-navbar self-start text-sm">{prettyPrintParameter(param)}</div>
+                                            <div className="flex-1 h-[1px] bg-white bg-opacity-70"></div>
+                                        </div>
+
+                                        <div className="w-full flex flex-row items-center justify-around">
+                                            <div className="text-white text-base font-navbar font-semibold">#&nbsp;
+                                                {(userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters].WR[param]!=-1)?
+                                                userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters].WR[param]:
+                                                "-"}
+                                            </div>
+                
+                                            <div className="text-white text-base font-navbar font-semibold">#&nbsp;
+                                                {(userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters].NR[param]!=-1)?
+                                                userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters].NR[param]:
+                                                "-"}
+                                            </div>
+                                        </div>
+
+                                        <div className="w-full flex flex-row items-center justify-around">
+                                            <div className="text-white text-[8px] p-[2px] px-1 bg-yellow-gold bg-opacity-65 font-thin">WORLD</div>
+                                            <div className="text-white text-[8px] p-[2px] px-1 bg-yellow-gold bg-opacity-50 font-thin">NATION</div>
+                                        </div>
+                                    </>)
+                                })}
+                                </>
+                            }
+
+                            {isLoadingPosition &&
+                                <i className="fi fi-tr-loading text-[30px] text-white leading-[0] origin-center animate-rotation"></i>
+                            }
+                        </div>
+
                         <div className="text-white text-2xl font-default">USER SETTINGS</div>
 
                         {!showEditUsername && 
