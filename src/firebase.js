@@ -343,5 +343,14 @@ const updateUserUsername=async(username)=>{
     }
 }
 
+const deleteAccount=async()=>{
+    try{
+        await deleteDoc(doc(db,"users",auth.currentUser.uid));
+        return [true,"Success!"]
+    }catch(e){
+        return [false,e.message];
+    }
+}
+
 export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillLeaderboard,
-    storeGameResult,updateUserLvExpAndGames,updateUserCountry,updateUserUsername,getAllUserGames};
+    storeGameResult,updateUserLvExpAndGames,updateUserCountry,updateUserUsername,getAllUserGames,deleteAccount};

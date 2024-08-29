@@ -26,7 +26,8 @@ export default withMT({
         'yellow-gold':"#FEE101",
         'darkBlue':"#1c158f",
         'resultsBg':"#0c0b1f",
-        'tooltipColor':"#16153b"
+        'tooltipColor':"#16153b",
+        'noticeBg':"#3d3c4c"
       },
       keyframes:{
         'record':{
@@ -46,13 +47,19 @@ export default withMT({
           '20%':{bottom:"20px", opacity:1},
           '80%':{bottom:"20px",opacity:1},
           '100%':{bottom:"-200px",opacity:0}
+        },
+        'deleteAccount':{
+          '0%':{background:"rgba(220,38,38,0.2)"},
+          '50%':{background:"transparent"},
+          '100%':{background:"rgba(220,38,38,0.2)"}
         }
       },
       animation: {
         record: 'record 1s 1s ease-in-out forwards',
         fadeUp: 'fadeUp 0.8s ease-in-out forwards',
         notice: 'notice 4s ease-in-out forwards',
-        rotation: 'rotation 2s infinite linear'
+        rotation: 'rotation 2s infinite linear',
+        deleteAccount: 'deleteAccount 2s infinite linear'
       }
     },
   },

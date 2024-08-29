@@ -3,7 +3,7 @@ import Container from "../components/Container";
 import Navbar from "../components/Navbar";
 import Loading from "../components/Loading";
 import { useCountries } from "use-react-countries";
-import { getAllUserGames, getSkillLeaderboard, getUserData, signOutWithGoogle, updateUserCountry, updateUserUsername } from "../firebase";
+import { deleteAccount, getAllUserGames, getSkillLeaderboard, getUserData, signOutWithGoogle, updateUserCountry, updateUserUsername } from "../firebase";
 import UserLevel from "../components/UserLevel";
 import Notice from "../components/Notice";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +15,9 @@ import { numberMod, prettyPrintDate, prettyPrintParameter, TooltipChartCustom } 
 const Profile=(props)=>{
     const [isLoading,setIsLoading]=useState(true);
     const [userData,setUserdata]=useState({});
+
+    const [isOpenUserSettings,setIsOpenUserSettings]=useState(false);
+    const [showDeleteUser,setShowDeleteUser]=useState(false);
 
     //edit country
     const [showCountryChange,setShowCountryChange]=useState(false);
@@ -98,6 +101,7 @@ const Profile=(props)=>{
             noticeRef.current.triggerNotice("Username updated!");
         }else{
             noticeRef.current.triggerNotice("Update failed");
+            console.log(message)
         }
 
         setShowEditUsername(false);
@@ -159,8 +163,11 @@ const Profile=(props)=>{
         }
 
         for(var i in resultsParameters){
-            const copyOfGamesFiltered=structuredClone(gamesAlreadyFiltered);
-            personalBests[resultsParameters[i]]=copyOfGamesFiltered.sort((a,b)=>a[resultsParameters[i]]-b[resultsParameters[i]])[0][resultsParameters[i]];
+            const copyOfGamesFiltered=gamesAlreadyFiltered.map(g=>g);
+            personalBests[resultsParameters[i]]={
+                value:copyOfGamesFiltered.sort((a,b)=>a[resultsParameters[i]]-b[resultsParameters[i]])[0][resultsParameters[i]],
+                date:new Date(copyOfGamesFiltered.sort((a,b)=>a[resultsParameters[i]]-b[resultsParameters[i]])[0].date.toDate())
+            };
         }
 
         setFilteredPersonalBests(personalBests);
@@ -258,6 +265,16 @@ const Profile=(props)=>{
         setLastGamesSelectedParameters(numberMod(lastGamesSelectedParameters-1,numOfSkillsParameters));
     }
 
+    const deleteUserAccount=async()=>{
+        const [resp,message]=await deleteAccount();
+
+        if(resp){
+            noticeRef.current.triggerNotice("Deleting Account...",async()=>{await signOutWithGoogle();navigate("/")});
+        }else{
+            noticeRef.current.triggerNotice("Account Delete Failed!");
+        }
+    }
+
     if(isLoading){
         return <Loading/>
     }else{
@@ -268,9 +285,13 @@ const Profile=(props)=>{
                 <div className="w-screen flex flex-row mt-5">
                     <div className="basis-[33%] flex flex-col items-center gap-3">
                         <img src={userData.profileImage} className="w-[80px] h-[80px] rounded-full border-2 border-blueOverBg"/>
-                        <div className="text-white font-default text-2xl w-full line-clamp-2 text-center">
-                            {userData.username.toUpperCase()}<br/>
-                            <span className="text-xs text-white text-opacity-60 font-navbar leading-1">EST. {prettyPrintDate(userData.creationDate.toDate())}</span>
+                        
+                        <div className="w-[80%] flex flex-col items-center gap-1">
+                            <div className="text-white font-default text-2xl w-full line-clamp-1 text-center" title={userData.username.toUpperCase()}>
+                                {userData.username.toUpperCase()}<br/>
+                            </div>
+
+                            <div className="text-xs text-white text-opacity-60 font-navbar leading-1">EST. {prettyPrintDate(userData.creationDate.toDate())}</div>
                         </div>
 
                         {showEditUsername && <input type="text" className="w-[50%] p-1 pl-3 rounded-sm outline-none bg-white bg-opacity-20 font-navbar" value={newUsername} onChange={(e)=>setNewUsername(e.target.value)}/>}
@@ -422,7 +443,8 @@ const Profile=(props)=>{
                                     return(
                                         <div className="flex flex-row items-center gap-4" key={"pesronal"+param}>
                                             <div className="text-white text-opacity-75 bg-tooltipColor rounded-sm p-1 px-2 text-sm font-navbar min-w-[100px]">{prettyPrintParameter(param)}</div>
-                                            <div className="text-white text-opacity-70 text-sm min-w-[55px] text-center bg-white bg-opacity-5 p-1 px-2 rounded-sm">{filteredPersonalBests[param]}</div>
+                                            <div className="text-white text-opacity-70 text-sm min-w-[55px] text-center bg-white bg-opacity-5 p-1 px-2 rounded-sm">{filteredPersonalBests[param].value}</div>
+                                            <div className="text-white text-opacity-70 text-xs">{prettyPrintDate(filteredPersonalBests[param].date)}</div>
                                         </div>
                                     )
                                 })}
@@ -434,36 +456,74 @@ const Profile=(props)=>{
 
                     <div className="basis-[33%] flex flex-col items-center gap-4">
 
-                        <div className="flex flex-col items-center gap-1 p-2 px-4 rounded-md bg-tooltipColor">
+                    {isOpenUserSettings && <>
+                            <div className="text-white text-2xl font-default">USER SETTINGS</div>
+
+                            {!showEditUsername && 
+                            <div className="flex flex-row w-[120px] items-center justify-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 rounded-sm bg-mainBlue" onClick={()=>setShowEditUsername(true)}>
+                                <i className="fi fi-rr-pen-square leading-[0] text-[8px]"></i>
+                                Edit username
+                            </div>}
+
+                            {!showCountryChange && 
+                            <div className="flex flex-row w-[120px] items-center justify-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 rounded-sm bg-mainBlue" onClick={()=>setShowCountryChange(true)}>
+                                <i className="fi fi-rr-pen-square leading-[0] text-[8px]"></i>
+                                Edit country
+                            </div>}
+
+                            <button className="bg-mainRed text-white p-1 px-3 font-navbar outline-none rounded-sm" onClick={()=>signOut()}>Sign Out</button>
+
+                            <button className="border-2 border-mainRed border-opacity-80 rounded-sm text-mainRed text-opacity-80 p-1 px-3 font-navbar outline-none" onClick={()=>setShowDeleteUser(true)}>Delete Account</button>
+
+                            {showDeleteUser && 
+                            <div className="flex flex-col p-2 items-center gap-2 animate-deleteAccount">
+                                <div className="w-[200px] text-wrap text-xl text-white font-navbar font-semibold text-center">Confirm deleting your account?</div>
+
+                                <div className="flex flex-row gap-2">
+                                    <button className="w-[50px] bg-red-800 rounded-sm text-opacity-80 py-[2px] font-navbar outline-none" onClick={()=>deleteUserAccount()}>
+                                        Yes
+                                    </button>
+
+                                    <button className="w-[50px] rounded-sm text-white bg-mainBlue py-[2px] font-navbar outline-none" onClick={()=>setShowDeleteUser(false)}>
+                                        No
+                                    </button>
+                                </div>
+                            </div>}
+                        </>}
+
+                        <div className={"w-[200px] flex flex-col items-center gap-1 px-2 transition-all duration-300 origin-top overflow-hidden "+(isOpenUserSettings?"scale-y-0 h-[1px]":"h-[60vh]")}>
                             {!isLoadingPosition &&
                                 <>
-                                <div className="text-white text-xl font-default mt-2">USER POSITION</div>
+                                <div className="text-white text-2xl font-default">USER POSITION</div>
 
                                 {skills[lastGamesSelectedSkill].skillResultsParameters.map((param)=>{
                                     return(<>
-                                        <div className="w-full flex flex-row items-center gap-2 mt-3">
-                                        <div className="flex-1 h-[1px] bg-white bg-opacity-70"></div>
+                                        <div className="w-full flex flex-row items-center gap-2 mt-1">
+                                            <div className="flex-1 h-[1px] bg-white bg-opacity-70"></div>
                                             <div className="text-white text-opacity-70 font-navbar self-start text-sm">{prettyPrintParameter(param)}</div>
                                             <div className="flex-1 h-[1px] bg-white bg-opacity-70"></div>
                                         </div>
 
-                                        <div className="w-full flex flex-row items-center justify-around">
-                                            <div className="text-white text-base font-navbar font-semibold">#&nbsp;
-                                                {(userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters].WR[param]!=-1)?
-                                                userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters].WR[param]:
-                                                "-"}
-                                            </div>
-                
-                                            <div className="text-white text-base font-navbar font-semibold">#&nbsp;
-                                                {(userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters].NR[param]!=-1)?
-                                                userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters].NR[param]:
-                                                "-"}
-                                            </div>
-                                        </div>
+                                        <div className="w-full flex flex-row items-center justify-center gap-10 mt-1">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <div className="text-white text-opacity-75 text-base font-navbar font-semibold p-1 px-[6px] bg-tooltipColor">#&nbsp;
+                                                    {(userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters].WR[param]>0)?
+                                                    userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters].WR[param]:
+                                                    "-"}
+                                                </div>
 
-                                        <div className="w-full flex flex-row items-center justify-around">
-                                            <div className="text-white text-[8px] p-[2px] px-1 bg-yellow-gold bg-opacity-65 font-thin">WORLD</div>
-                                            <div className="text-white text-[8px] p-[2px] px-1 bg-yellow-gold bg-opacity-50 font-thin">NATION</div>
+                                                <div className="text-white text-[8px] p-[2px] px-1 bg-yellow-gold bg-opacity-50 font-thin">WORLD</div>
+                                            </div>
+                                            
+                                            <div className="flex flex-col items-center gap-2">
+                                                <div className="text-white text-opacity-75 text-base font-navbar font-semibold p-1 px-[6px] bg-tooltipColor">#&nbsp;
+                                                    {(userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters].NR[param]>0)?
+                                                    userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters].NR[param]:
+                                                    "-"}
+                                                </div>
+
+                                                <div className="text-white text-[8px] p-[2px] px-1 bg-yellow-gold bg-opacity-50 font-thin">NATION</div>
+                                            </div>
                                         </div>
                                     </>)
                                 })}
@@ -475,21 +535,9 @@ const Profile=(props)=>{
                             }
                         </div>
 
-                        <div className="text-white text-2xl font-default">USER SETTINGS</div>
-
-                        {!showEditUsername && 
-                        <div className="flex flex-row w-[120px] items-center justify-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 rounded-sm bg-mainBlue" onClick={()=>setShowEditUsername(true)}>
-                            <i className="fi fi-rr-pen-square leading-[0] text-[8px]"></i>
-                            Edit username
-                        </div>}
-
-                        {!showCountryChange && 
-                        <div className="flex flex-row w-[120px] items-center justify-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 rounded-sm bg-mainBlue" onClick={()=>setShowCountryChange(true)}>
-                            <i className="fi fi-rr-pen-square leading-[0] text-[8px]"></i>
-                            Edit country
-                        </div>}
-
-                        <button className="bg-mainRed text-white p-1 px-3 font-navbar outline-none rounded-sm" onClick={()=>signOut()}>Sign Out</button>
+                        <button className="bg-darkBlue text-white p-1 px-3 font-navbar outline-none rounded-sm" onClick={()=>setIsOpenUserSettings(!isOpenUserSettings)}>
+                            <i className="fi fi-sr-settings text-xs leading-0"></i>&ensp;{isOpenUserSettings?"Close Settings":"Settings"}
+                        </button>
                     </div>
 
                 </div>
