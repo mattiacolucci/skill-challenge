@@ -105,6 +105,10 @@ const TooltipChartCustom=(props)=>{
 
 function numberMod(n, m) {
     return ((n % m) + m) % m;
-  }
+}
 
-export {calculateMaxValueExpByLv, calculateEarnedExpSkill, parseJwt, getCountryByIp, TooltipChartCustom, prettyPrintDate, prettyPrintParameter, numberMod};
+function calculateAvgAccumulately(avg,n,xn){
+    return parseFloat(((avg*n+xn)/(n+1)).toFixed(3));
+}
+
+export {calculateMaxValueExpByLv, calculateEarnedExpSkill, parseJwt, getCountryByIp, TooltipChartCustom, prettyPrintDate, prettyPrintParameter, numberMod, calculateAvgAccumulately};

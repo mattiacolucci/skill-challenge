@@ -3,6 +3,7 @@ import { initializeApp } from "firebase/app";
 import { addDoc, collection, count, deleteDoc, doc, DocumentSnapshot, getDoc, getDocs, getFirestore, limit, orderBy, query, QuerySnapshot, runTransaction, setDoc, updateDoc, where } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { skills } from "./assets/data";
+import { calculateAvgAccumulately } from "./utility";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -38,6 +39,12 @@ const signOutWithGoogle = () => signOut(auth);
 //create user
 
 const createUserAccount=async (country)=>{
+    var avgPerformances={}
+
+    for(const i in skills){
+        avgPerformances[skills[i].title]={value:-1,numGames:0};
+    }
+
     try{
         await setDoc(doc(db,"users",auth.currentUser.uid),{
             country:country,
@@ -45,7 +52,9 @@ const createUserAccount=async (country)=>{
             exp:0,
             numGames:0,
             username:auth.currentUser.displayName,
+            avgPerformances:avgPerformances,
             records:{},
+            rankingPoints:1000,  //default ranking points of any user
             creationDate:new Date()
         })
         return [true,"Success"];
@@ -88,8 +97,6 @@ const getUserData = async (uid)=>{
 //user's personal best games according to each skill parameter
 const getSkillLeaderboard=async (uidUser, skill, skillParameters, country, limitResults=1)=>{
     var records={};
-
-    //NOT WORKSS
 
     try{
         switch(skill){
@@ -238,83 +245,85 @@ const getLastGamesUser=async(skill,skillParameters,user,numGames)=>{
  * @param {*} isRecord indicates if the game to store is a record or not. Contains all distances from current records
  * @returns 
  */
-const storeGameResult=async (result,skillIndex,skillParameters,records,isRecord)=>{
+const storeGameResult=async (result,skillIndex,skillParameters,records,isRecord,newLv,newExp,newRankingPoints)=>{
     try{
-        //get last 5 user games
-        const [resp, lastGames]=await getLastGamesUser(skillIndex,skillParameters,auth.currentUser.uid,5);
+        await runTransaction(db,async(transactionDB)=>{
+            //get user data
+            const currUser = await transactionDB.get(doc(db,"users",auth.currentUser.uid));
+            var newUser=currUser.data();
 
-        if(!resp){
-            return [false,"Error on saving the game"];
-        }
+            //get last 5 user games
+            const [resp, lastGames]=await getLastGamesUser(skillIndex,skillParameters,auth.currentUser.uid,5);
 
-        //get the id of the game played less recently
-        const lessRecentGame=lastGames.at(-1);
+            if(!resp){
+                return [false,"Error on saving the game"];
+            }
 
-        //get ids of games which are current PB, NR and WR
-        //and get ids of games which was PB, NR and WR before the currect game was played
-        var recordIds=[]
-        for (const recordType in records){
-            for(const recordParameter in records[recordType]){
-                if(records[recordType][recordParameter].gameId!=null){
-                    //get record game id
-                    recordIds.push(records[recordType][recordParameter].gameId);
+            //get the id of the game played less recently
+            const lessRecentGame=lastGames.at(-1);
 
-                    //check if this record had been surpassed by the current game to store
-                    if(isRecord[recordType][recordParameter]<0 || isRecord[recordType][recordParameter]==null){  //if the current game to store is a new record for recordParameter
+            //get ids of games which are current PB, NR and WR
+            //and get ids of games which was PB, NR and WR before the currect game was played
+            var recordIds=[]
+            for (const recordType in records){
+                for(const recordParameter in records[recordType]){
+                    if(records[recordType][recordParameter].gameId!=null){
+                        //get record game id
+                        recordIds.push(records[recordType][recordParameter].gameId);
 
-                        //store in the user profile that he is done a new record. This is done only if the new record is not a PB
-                        if(recordType!="PB"){
-                            await runTransaction(db,async(transaction)=>{
-                                const currUser = await transaction.get(doc(db,"users",auth.currentUser.uid));
+                        //check if this record had been surpassed by the current game to store
+                        if(isRecord[recordType][recordParameter]<0 || isRecord[recordType][recordParameter]==null){  //if the current game to store is a new record for recordParameter
 
-                                const userSkillPastRecords=(currUser.data().records[result.skill]!=undefined ? currUser.data().records[result.skill] : []);
+                            //store in the user profile that he is done a new record. This is done only if the new record is not a PB
+                            if(recordType!="PB"){
+                                await runTransaction(db,async(transaction)=>{
+                                    const currUser = await transaction.get(doc(db,"users",auth.currentUser.uid));
 
-                                transaction.update(doc(db,"users",auth.currentUser.uid),{
-                                    records:{...currUser.data().records,[result.skill]:[
-                                        ...userSkillPastRecords,
-                                        {
-                                            recordType:recordType, recordParameter:recordParameter,
-                                            skillParameters:skillParameters.map((p,index)=>{return {[skills[skillIndex].skillParametersLongName[index]]:p}}),
-                                            value: result[recordParameter], date:new Date()
-                                        }
-                                    ]}
+                                    const userSkillPastRecords=(currUser.data().records[result.skill]!=undefined ? currUser.data().records[result.skill] : []);
+
+                                    transaction.update(doc(db,"users",auth.currentUser.uid),{
+                                        records:{...currUser.data().records,[result.skill]:[
+                                            ...userSkillPastRecords,
+                                            {
+                                                recordType:recordType, recordParameter:recordParameter,
+                                                skillParameters:skillParameters.map((p,index)=>{return {[skills[skillIndex].skillParametersLongName[index]]:p}}),
+                                                value: result[recordParameter], date:new Date()
+                                            }
+                                        ]}
+                                    })
                                 })
-                            })
+                            }
                         }
                     }
                 }
             }
-        }
 
-        //remouve duplicates
-        recordIds=[...new Set(recordIds)];
+            //remouve duplicates
+            recordIds=[...new Set(recordIds)];
 
-        //check if the less recent game is the actual personal best of the user or is a national or world record
-        if(lessRecentGame!=undefined && !recordIds.includes(lessRecentGame.gameId) && lastGames.length>4){  //if the less recent game is not a record and if the user played at least 5 games, i can delete it since it is not more a useful game
-            await deleteDoc(doc(db,"games",lessRecentGame.gameId));
-        }
+            //check if the less recent game is the actual personal best of the user or is a national or world record
+            if(lessRecentGame!=undefined && !recordIds.includes(lessRecentGame.gameId) && lastGames.length>4){  //if the less recent game is not a record and if the user played at least 5 games, i can delete it since it is not more a useful game
+                transactionDB.delete(doc(db,"games",lessRecentGame.gameId));
+            }
 
-        //if it is a record, we still remain it in the db
+            //if it is a record, we still remain it in the db
 
-        //save the current game
-        await addDoc(collection(db,"games"),result);
+            //update lv, exp, ranking points and performance parameter of the user
+            const performanceParameter=result[skills[skillIndex].skillPerformanceParameter];
 
-        return [true,"Success"];
-    }catch(e){
-        console.log(e);
-        return [false,e.message];
-    }
-}
+            newUser.lv=newLv;
+            newUser.exp=newExp;
+            newUser.numGames=newUser.numGames+1;
+            newUser.avgPerformances[result.skill].value=calculateAvgAccumulately(newUser.avgPerformances[result.skill].value,newUser.avgPerformances[result.skill].numGames,performanceParameter);
+            newUser.avgPerformances[result.skill].numGames=newUser.avgPerformances[result.skill].numGames+1;
+            newUser.rankingPoints=newRankingPoints;
 
-const updateUserLvExpAndGames=async(lv,exp)=>{
-    try{
-        await runTransaction(db,async(transaction)=>{
-            const currUser = await transaction.get(doc(db,"users",auth.currentUser.uid));
+            transactionDB.update(doc(db,"users",auth.currentUser.uid),newUser);
 
-            transaction.update(doc(db,"users",auth.currentUser.uid),{
-                lv:lv,exp:exp,numGames:currUser.data().numGames+1
-            });
-        })
+            //save the current game
+            await addDoc(collection(db,"games"),result);
+        });
+
         return [true,"Success"];
     }catch(e){
         return [false,e.message];
@@ -345,12 +354,74 @@ const updateUserUsername=async(username)=>{
 
 const deleteAccount=async()=>{
     try{
-        await deleteDoc(doc(db,"users",auth.currentUser.uid));
+        await runTransaction(db,async(transaction)=>{
+            //delete user
+            transaction.delete(doc(db,"users",auth.currentUser.uid));
+
+            //delete all games of the user
+            const games=await getDocs(
+                query(collection(db,"games"),where("user","==",auth.currentUser.uid))
+            );
+
+            for(const d in games.docs){
+                transaction.delete(doc(db,"games",games.docs[d].id));
+            }
+        });
         return [true,"Success!"]
     }catch(e){
         return [false,e.message];
     }
 }
 
+const calculateNewRankingPoints=async(rankingPoints,performanceParameter,skillIndex)=>{
+    try{
+        var newRankingPoints=rankingPoints;
+
+        const skillTitle=skills[skillIndex].title;
+
+        //get all avg performance for the played skill of all users with a ranking points +-50 from the current one of the playing user
+        const similarRankingUsers=await getDocs(
+            query(collection(db,"users"),where("rankingPoints","<=",rankingPoints+50),where("rankingPoints",">=",rankingPoints-50),where("user","!=",auth.currentUser.uid))
+        );
+
+        //filter users not considering users with avg performance = -1
+        const filteredSimilarRankingUsers=similarRankingUsers.docs.filter(u=>u.data().avgPerformances[skillTitle].value!=-1);
+
+        var avgOfAvgPerformances;
+        
+        //if there is at least a user with similar ranking points to me
+        if(filteredSimilarRankingUsers.length!=0){
+            //avg of avg performances of the played skill
+            avgOfAvgPerformances=filteredSimilarRankingUsers.map(u=>u.data().avgPerformances[skillTitle].value).reduce((a,b)=>a+b,0)/filteredSimilarRankingUsers.length;
+        }else{  //if there is no user with similar ranking point to me, set avg to the double of performance Parameter, so the user's ranking point can grow up
+            avgOfAvgPerformances=performanceParameter*2;
+        }
+
+        //difference between performance parameter value obtained in this game and the avg of avgs of performances
+        var diff=performanceParameter-avgOfAvgPerformances;
+
+        //calculate the number of ranking points tha has to user will gain/loss based on if he did a performance better or not than the avg
+        //the function x/(1+x) is monotone ascending with max = 1 per x->+inf. We multiply per 70 so the maximum number of points that
+        //will be earned/loss is 70.
+        var gainedPoints=Math.round(((Math.abs(diff))/(1+Math.abs(diff)))*70);
+
+        if(diff>0){
+            //if obtained performance parameter is higher than the avg of avgs, the user has done a game under the avg of performance and so he will lose ranking points
+            newRankingPoints=rankingPoints-gainedPoints;
+        }else if(diff<0){
+            //if obtained performance parameter is lower than avg of avgs, the user has done a game over the avg f performance and so its points will rise
+            newRankingPoints=rankingPoints+gainedPoints;
+        }
+
+        const earnedRankingPointsString="Avg of "+skills[skillIndex].skillPerformanceParameter+": "+avgOfAvgPerformances.toFixed(3);
+
+        return [true,newRankingPoints,earnedRankingPointsString];
+    }catch(e){
+        return [false,e,""];
+    }
+}
+
 export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillLeaderboard,
-    storeGameResult,updateUserLvExpAndGames,updateUserCountry,updateUserUsername,getAllUserGames,deleteAccount};
+    storeGameResult,updateUserCountry,updateUserUsername,getAllUserGames,deleteAccount,
+    calculateNewRankingPoints
+};

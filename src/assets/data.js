@@ -270,6 +270,9 @@ const countries = [
  * 	array of possible combinations of values for each skill parameter
  * - skillResultsParameters
  * 	array of string representing what is measured and showed in results after a game done on the skill
+ * - skillPerformanceParameter
+ * 	is a parameter which is used to measure the average performance of the user in a specific skill. This is used to update the
+ * 	ranking score of a user
  * - playInstructions
  *  instructions to play the skill
  */
@@ -289,6 +292,7 @@ const skills=[
 			[5,4]
 		],
 		skillResultsParameters:["totTime","avgTime","fastestWord"],
+		skillPerformanceParameter:"avgTime",
 		playInstructions:"In the following screnn there will be a text area with all the words you have to write and an input field, that ha sto be used to write the words\nFor each word, type it in the input field and press space once done; automatically the input field will be clear and you will be able to type the next word.\nThe current word is underlined by a blue color, instead all past correct words are underlined by a green color and if you type wrong the current word, it will become underlined by red color and you will be able to type it again"
 	},
 	{
@@ -305,6 +309,7 @@ const skills=[
 			[5,4]
 		],
 		skillResultsParameters:["totTime","avgTime","fastestWord"],
+		skillAvgPerformanceParameter:"avgTime",
 		playInstructions:"In the following screnn there will be a text area with all the words you have to write and an input field, that ha sto be used to write the words\nFor each word, type it in the input field and press space once done; automatically the input field will be clear and you will be able to type the next word.\nThe current word is underlined by a blue color, instead all past correct words are underlined by a green color and if you type wrong the current word, it will become underlined by red color and you will be able to type it again"
 	},
 	{

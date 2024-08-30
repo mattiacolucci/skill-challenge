@@ -23,7 +23,18 @@ const UserLevel = (props)=>{
                     <div className="text-white text-[10px] font-semibold font-navbar z-[2] text-opacity-80">{props.expValue+"/"+maxValueExp}</div>
                     <div className="absolute h-full bg-mainBlue bg-opacity-80 left-0 transition-all duration-500" style={{width:expWidth+"%"}}></div>
                 </div>
-                {props.earnedExp!=undefined && <div className="text-white text-[10px] ml-2" title={props.earnedExpString}>{"+"+props.earnedExp+" exp"}</div>}
+
+                <div className="ml-3 h-[22px] px-2 text-white text-[10px] leading-[22px] rounded-sm bg-mainBlue bg-opacity-60" title="Ranking Points">
+                    <i className="fi fi-sr-bahai text-blueOverBg text-[9px] !leading-0 p-0"></i>
+                    &ensp;
+                    {props.rankingPoints}
+                </div>
+
+                <div className="flex flex-col items-center">
+                    {props.earnedRankingPoints!=undefined && <div className="text-white text-[10px] ml-2" title={props.earnedRankingPointsString}>{((props.earnedRankingPoints>0)?"+":"")+props.earnedRankingPoints+" points"}</div>}
+                    {props.earnedExp!=undefined && <div className="text-white text-[10px] ml-2" title={props.earnedExpString}>{"+"+props.earnedExp+" exp"}</div>}
+                </div>
+
                 {props.levelUp && <div className="text-mainGreen text-[10px] ml-2 animate-fadeUp">⮙ Level Up</div>}
             </div>
         </div>

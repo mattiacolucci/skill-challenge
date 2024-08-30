@@ -43,7 +43,7 @@ const Play=(props)=>{
         }else if(value>max){
             parametersCopy[index]=max;
         }else{  //update value otherwise
-            parametersCopy[index]=value;
+            parametersCopy[index]=parseFloat(value);
         }
         //update state
         setSkillsParameters(parametersCopy);
@@ -57,7 +57,7 @@ const Play=(props)=>{
         const [response,data]=await getUserData(props.user.uid);
 
         if(response){
-            setUserData({...props.user,lv:data.lv,exp:data.exp,username:data.username});
+            setUserData({...props.user,lv:data.lv,exp:data.exp,username:data.username,rankingPoints:data.rankingPoints});
 
             //fetch skill leaderboard
             const [resp,skillRecords] = await getSkillLeaderboard(props.user.uid,selectedSkill,skillsParameters,data.country,1);

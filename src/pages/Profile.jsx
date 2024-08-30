@@ -142,12 +142,6 @@ const Profile=(props)=>{
         //sort games by date from the most recent
         filteredGames=filteredGames.sort((g1,g2)=>g2.date.toDate().getTime()-g1.date.toDate().getTime())
 
-        //get last five games
-        filteredGames=filteredGames.slice(0,5)
-        
-        //reverse games
-        filteredGames=filteredGames.reverse();
-
         setFilteredGamesData(filteredGames);
     }
 
@@ -358,7 +352,7 @@ const Profile=(props)=>{
                         </div>}
 
                         <UserLevel className="items-center" userLv={userData.lv} expValue={userData.exp} userProfileImage={userData.profileImage}
-                        username={userData.name}/>
+                        username={userData.name} rankingPoints={userData.rankingPoints}/>
 
                         <div className="text-white font-default text-2xl mt-7">RECORDS 
                             <span className="text-xs text-white text-opacity-60 ml-2 font-navbar">({Object.keys(userData.records).map(skill=>userData.records[skill].length).reduce((sum,a)=>sum+a,0)})</span>
@@ -421,7 +415,7 @@ const Profile=(props)=>{
                             </div>
                             
                             <div className="mt-5">
-                                {filteredGamesData.length!=0 && <LineChart width={300} height={160} data={filteredGamesData} margin={{bottom:10,right:10}} style={{alignSelf:"center"}}>
+                                {filteredGamesData.length!=0 && <LineChart width={300} height={160} data={filteredGamesData.slice(0,5).reverse()} margin={{bottom:10,right:10}} style={{alignSelf:"center"}}>
                                     <CartesianGrid strokeDasharray="2" strokeOpacity={0.3}/>
                                     <XAxis minTickGap={10} dataKey="date" type="category" interval={"equidistantPreserveStartEnd"} label={{ value: 'Date', angle: 0, position: 'insideBottomRight', offset:7, fontSize:"12px"}} style={{ fontSize: '12px'}}/>
                                     <YAxis minTickGap={8} domain={[0, 'dataMax + 0.5']} type={"number"} interval={"equidistantPreserveStartEnd"} label={{ value: 'Value', angle: -90, fontSize:"11px", position:'insideBottom', offset:35}} style={{ fontSize: '12px'}}/>

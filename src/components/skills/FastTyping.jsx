@@ -5,8 +5,9 @@ import { Line, LineChart, XAxis, YAxis } from "recharts";
 import { calculateEarnedExpSkill } from "../../utility.jsx";
 import UserLevel from "../UserLevel";
 import Loading from "../Loading";
-import { storeGameResult, updateUserLvExpAndGames } from "../../firebase";
+import { calculateNewRankingPoints, storeGameResult } from "../../firebase";
 import { useNavigate } from "react-router-dom";
+import { skills } from "../../assets/data.js";
 
 const FastTyping=(props)=>{
     //user settings
@@ -18,6 +19,9 @@ const FastTyping=(props)=>{
     const [earnedExp,setEarnedExp]=useState(0);   //indicated exp eaerned by playing the single game
     const [levelUp,setLevelUp]=useState(false);  //true if after the game a new level has been reached
     const [earnedExpString,setEarnedExpString]=useState("");  //string which express how the exp earned in a game is distribuited
+    const [rankingPoints,setRankingPoints]=useState(props.user.rankingPoints);   //ranking points
+    const [earnedRankingPoints,setEarnedRankingPoints]=useState(0);  //represents earned ranking points
+    const [earnedRankingPointsString,setEarnedRankingPointsString]=useState("");  //represents earned ranking points string
     
     //personal bests
     const personalBestSingleWord=props.records.PB.fastestWord.record;  //personal best single word in sec
@@ -226,28 +230,20 @@ const FastTyping=(props)=>{
         //calculate earned exp and new level if it has been reached
         const [newExp,newLevel,newEarnedExp,newEarnedExpString]=calculateEarnedExpSkill("FAST TYPING",props.skillsParameters,userLv,results,expValue);
 
-        //update lv and exp after 2 sec
-        setTimeout(()=>{setUserLv(newLevel);
-            setEarnedExp(newEarnedExp);
-            setLevelUp((newLevel>userLv)?true:false);
-            setExpValue(newExp);
-            setEarnedExpString(newEarnedExpString);
-        },2000)
+        //calculate new ranking points
+        const [response,newRankingPoints,rankingPointsString]=await calculateNewRankingPoints(rankingPoints,results[skills[0].skillPerformanceParameter],0);
 
-        //store result on db
-        setIsSoftLoading(true);
+        if(response){
+            //store result on db
+            setIsSoftLoading(true);
 
-        const [resp,message]=await storeGameResult({
-            skill:"FAST TYPING", user:props.user.uid, totTime:parseFloat(results.totalTime.toFixed(3)),
-            avgTime:parseFloat(results.avgTime.toFixed(3)), fastestWord:parseFloat(results.fastestWord.time.toFixed(3)), 
-            date: new Date(),numWords:parseInt(num_words), numChars:parseInt(num_chars)
-        },0,props.skillsParameters,props.records,results.distancesFromRecords);
+            const [resp,message]=await storeGameResult({
+                skill:"FAST TYPING", user:props.user.uid, totTime:parseFloat(results.totalTime.toFixed(3)),
+                avgTime:parseFloat(results.avgTime.toFixed(3)), fastestWord:parseFloat(results.fastestWord.time.toFixed(3)), 
+                date: new Date(),numWords:parseInt(num_words), numChars:parseInt(num_chars)
+            },0,props.skillsParameters,props.records,results.distancesFromRecords,newLevel,newExp,newRankingPoints);
 
-        if(resp){
-            //update user lv and exp
-            const [response,message]=await updateUserLvExpAndGames(newLevel,newExp);
-
-            if(response){  //if lv and exp have been updated
+            if(resp){
                 //go to results screen
                 resultsRef.current.scrollIntoView({behavior: "smooth", block: "start", inline: "nearest"});
 
@@ -256,10 +252,21 @@ const FastTyping=(props)=>{
                 console.log(message);
             }
         }else{
-            console.log(message);
+            console.log(newRankingPoints);
         }
 
         setIsSoftLoading(false);
+
+        //update lv, exp and ranking points after 2 sec
+        setTimeout(()=>{setUserLv(newLevel);
+            setEarnedExp(newEarnedExp);
+            setLevelUp((newLevel>userLv)?true:false);
+            setExpValue(newExp);
+            setEarnedExpString(newEarnedExpString);
+            setEarnedRankingPoints(newRankingPoints-rankingPoints);
+            setRankingPoints(newRankingPoints);
+            setEarnedRankingPointsString(rankingPointsString);
+        },2000);
     }
 
     //component which display all typed words and the time in which it has been typed
@@ -268,7 +275,7 @@ const FastTyping=(props)=>{
     const wordTyped=<div className="w-screen px-4 flex flex-row gap-2 mt-auto mb-3 select-none content-start">
                         {wordsToWrite.filter(w=>w.status=="correct").map((word,index)=>{
                             return(
-                                <div className="basis-[10%] flex flex-col gap-2 items-center animate-fadeUp" key={word}>
+                                <div className="basis-[10%] flex flex-col gap-2 items-center animate-fadeUp" key={word.word}>
                                     <div className={"font-navbar text-base "+((index>6)?"text-white text-opacity-70":"text-blueOverBg")}>{word.time.toFixed(3)+"s"}</div>
                                     <div className={"w-full h-1 rounded-md "+((index>6)?"bg-white bg-opacity-70":"bg-blueOverBg")}></div>
                                     <div className="font-navbar text-white text-base">{word.word.charAt(0).toUpperCase() + word.word.slice(1)}</div>
@@ -336,7 +343,8 @@ const FastTyping=(props)=>{
                 <div className="w-screen flex flex-row items-center mt-5">
 
                     <UserLevel className="basis-[33%] self-end pl-7" userLv={userLv} expValue={expValue} userProfileImage={userProfileImage}
-                    levelUp={levelUp} username={username} earnedExp={earnedExp} earnedExpString={earnedExpString} displayUserInfo={true}/>
+                    levelUp={levelUp} username={username} earnedExp={earnedExp} earnedExpString={earnedExpString} displayUserInfo={true} 
+                    rankingPoints={rankingPoints} earnedRankingPoints={earnedRankingPoints} earnedRankingPointsString={earnedRankingPointsString}/>
 
                     <div className="basis-[33%] font-default text-3xl self-center text-center">RESULTS</div>
 
