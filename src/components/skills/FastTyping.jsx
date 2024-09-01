@@ -231,7 +231,7 @@ const FastTyping=(props)=>{
         const [newExp,newLevel,newEarnedExp,newEarnedExpString]=calculateEarnedExpSkill("FAST TYPING",props.skillsParameters,userLv,results,expValue);
 
         //calculate new ranking points
-        const [response,newRankingPoints,rankingPointsString]=await calculateNewRankingPoints(rankingPoints,results[skills[0].skillPerformanceParameter],0);
+        const [response,newRankingPoints,rankingPointsString]=await calculateNewRankingPoints(rankingPoints,results[skills[0].skillPerformanceParameter],0,props.skillsParameters);
 
         if(response){
             //store result on db

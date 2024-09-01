@@ -323,4 +323,38 @@ const skills=[
 //color of lines to print in charts
 const lineChartColors=["#16a34a","#dc2626","#1d4ed8"]
 
-export {countries,skills,lineChartColors};
+//indicates for each range of renking points, and for each skill, which is the estimated avg performance to use in order to
+//compare performance done by the user in a game if no other users have similar ranking to the one who has played.
+const skillAvgPerformanceRanking={
+	"FAST TYPING":{
+		//parameters used to calculate avg performances in following ranges
+		relativeParameter:[1,4],
+
+		//value to add to the calculated avg performance for each additional unit of the skill parameter related to the "relativeParameter"
+		//expressed in the previous field 
+		//EX: if skills parameters are [1,6] we calculate he avg performance with the following ranges and add to it 0.2s*2=0.4s since
+		//we have that 6-4=2 (with 6 the second parameter of the skill and 4 the parameter used to calculate avg performances in following ranges)
+		additioner:[0,0.2],
+
+		ranges:[
+			//at range 0-50 the avg performance is 10s and at reange 350-400 the avg performance is 3s
+			//to calculate intermediate ranges (between 0-50 and 350-400) just take the avgPerformance and subtract to it the
+			//integer part of the division (current user ranking points - rangeRankingPoints[0])/50 in seconds.
+			//EX: current user ranking is 310, to discover the avgPerformance of range 300-350 in which the user is, just to (310-0)/50=6.1=6
+			//and do avgPerformance 10-6=4s, so the avg performance for range 300-350 is 4s
+			{rangeRankingPoints:[0,400],avgPerformance:10,subtractator:1,singleRange:false},
+
+			//in this case the range represented is only one and there is no intermediate range to calculate
+			{rangeRankingPoints:[400,450],avgPerformance:2.5,singleRange:true},
+			{rangeRankingPoints:[450,500],avgPerformance:2.25,singleRange:true},
+
+			//to calculate intermediate ranges, subtract 0.1s to minAvgPerformance multiplied by (current user ranking points - rangeRankingPoints[0])/50
+			{rangeRankingPoints:[500,1300],avgPerformance:2,subtractator:0.1,singleRange:false},
+
+			//this is the last range possible. For every ranking points between 1300 and infinity, the related avg performance is 0.4s
+			{rangeRankingPoints:[1300,Infinity],avgPerformance:0.4,singleRange:true}
+		]
+	}
+}
+
+export {countries,skills,lineChartColors,skillAvgPerformanceRanking};

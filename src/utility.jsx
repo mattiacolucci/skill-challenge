@@ -1,3 +1,5 @@
+import { skillAvgPerformanceRanking } from "./assets/data";
+
 const calculateMaxValueExpByLv=(level)=>{
     //this function calculates the max level of experiemnce that has to be reached to upgrade to the next level
     //ths fomula is inspred by the sigmoid function. The maximum value reachable is 100k. Thanks to this formula
@@ -111,4 +113,38 @@ function calculateAvgAccumulately(avg,n,xn){
     return parseFloat(((avg*n+xn)/(n+1)).toFixed(3));
 }
 
-export {calculateMaxValueExpByLv, calculateEarnedExpSkill, parseJwt, getCountryByIp, TooltipChartCustom, prettyPrintDate, prettyPrintParameter, numberMod, calculateAvgAccumulately};
+function calculateEstimatedAvgPerformanceBasedOnRankingPoints(rankingPoints,skillTitle,skillParameters){
+    const ranges=skillAvgPerformanceRanking[skillTitle].ranges;
+    const relativeParameter=skillAvgPerformanceRanking[skillTitle].relativeParameter;
+    const additioner=skillAvgPerformanceRanking[skillTitle].additioner;
+
+    var avgPerformance;
+
+    //cicle for all ranges finding in which one contains current ranking point
+    for(const i in ranges){
+        const rangeMin=ranges[i].rangeRankingPoints[0];
+        const rangeMax=ranges[i].rangeRankingPoints[1];
+
+        if(rangeMin<=rankingPoints && rankingPoints<=rangeMax){
+            //we found the ranking range and so calculate the avg performance
+            //if the found range is a single range, we got the avg performance, else we have to calculate it
+            if(ranges[i].singleRange){
+                avgPerformance=ranges[i].avgPerformance;
+                break;
+            }else{
+                //the range represents multiple ranges
+                avgPerformance=ranges[i].avgPerformance - Math.trunc((rankingPoints-rangeMin)/50)*ranges[i].subtractator;
+                break;
+            }
+        }
+    }
+
+    //update the avgPerformance found if skills parameters are different from the one used to caluclate it
+    const addition = skillParameters.map((p,index)=>(p-relativeParameter[index])*additioner[index]);
+    avgPerformance=avgPerformance+addition.reduce((a,b)=>a+b,0);
+
+    return avgPerformance;
+}
+
+export {calculateMaxValueExpByLv, calculateEarnedExpSkill, parseJwt, getCountryByIp, TooltipChartCustom, prettyPrintDate, 
+    prettyPrintParameter, numberMod, calculateAvgAccumulately, calculateEstimatedAvgPerformanceBasedOnRankingPoints};

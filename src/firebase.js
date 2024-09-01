@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { addDoc, collection, count, deleteDoc, doc, DocumentSnapshot, getDoc, getDocs, getFirestore, limit, orderBy, query, QuerySnapshot, runTransaction, setDoc, updateDoc, where } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { skills } from "./assets/data";
-import { calculateAvgAccumulately } from "./utility";
+import { calculateAvgAccumulately, calculateEstimatedAvgPerformanceBasedOnRankingPoints, prettyPrintParameter } from "./utility";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -39,24 +39,20 @@ const signOutWithGoogle = () => signOut(auth);
 //create user
 
 const createUserAccount=async (country)=>{
-    var avgPerformances={}
-
-    for(const i in skills){
-        avgPerformances[skills[i].title]={value:-1,numGames:0};
-    }
-
     try{
+        //store user account
         await setDoc(doc(db,"users",auth.currentUser.uid),{
             country:country,
             lv:1,
             exp:0,
             numGames:0,
             username:auth.currentUser.displayName,
-            avgPerformances:avgPerformances,
+            profileImage:auth.currentUser.photoURL,
+            avgPerformances:{},
             records:{},
-            rankingPoints:1000,  //default ranking points of any user
+            rankingPoints:0,  //default ranking points of any user
             creationDate:new Date()
-        })
+        });
         return [true,"Success"];
     }catch(e){
         console.log(e);
@@ -308,15 +304,32 @@ const storeGameResult=async (result,skillIndex,skillParameters,records,isRecord,
 
             //if it is a record, we still remain it in the db
 
-            //update lv, exp, ranking points and performance parameter of the user
+            //get performance parameter done in the game to store
             const performanceParameter=result[skills[skillIndex].skillPerformanceParameter];
 
+            //update exp, lv, rnking points and num games
             newUser.lv=newLv;
             newUser.exp=newExp;
             newUser.numGames=newUser.numGames+1;
-            newUser.avgPerformances[result.skill].value=calculateAvgAccumulately(newUser.avgPerformances[result.skill].value,newUser.avgPerformances[result.skill].numGames,performanceParameter);
-            newUser.avgPerformances[result.skill].numGames=newUser.avgPerformances[result.skill].numGames+1;
             newUser.rankingPoints=newRankingPoints;
+
+            //update avg performance according to the played skill and parameters
+            //this represent the key of the avg performance, created as the concat of all skills parameters by the char "-"
+            const avgPerformanceSkillParametersKey=skillParameters.join("-");
+
+            //if there is no stored avg parameter for current skill, initialize it as {}
+            if(newUser.avgPerformances[result.skill]==undefined){
+                newUser.avgPerformances[result.skill]={};
+            }
+
+            //if there is no stored avg parameter for current skill and parameters, initialize it
+            if(newUser.avgPerformances[result.skill][avgPerformanceSkillParametersKey]==undefined){
+                newUser.avgPerformances[result.skill][avgPerformanceSkillParametersKey]={value:performanceParameter,numGames:1};
+            }else{
+                //else, update current avg parameter
+                newUser.avgPerformances[result.skill][avgPerformanceSkillParametersKey].value=calculateAvgAccumulately(newUser.avgPerformances[result.skill][avgPerformanceSkillParametersKey].value,newUser.avgPerformances[result.skill][avgPerformanceSkillParametersKey].numGames,performanceParameter);
+                newUser.avgPerformances[result.skill][avgPerformanceSkillParametersKey].numGames=newUser.avgPerformances[result.skill][avgPerformanceSkillParametersKey].numGames+1;
+            }
 
             transactionDB.update(doc(db,"users",auth.currentUser.uid),newUser);
 
@@ -373,28 +386,31 @@ const deleteAccount=async()=>{
     }
 }
 
-const calculateNewRankingPoints=async(rankingPoints,performanceParameter,skillIndex)=>{
+const calculateNewRankingPoints=async(rankingPoints,performanceParameter,skillIndex,skillParameters)=>{
     try{
         var newRankingPoints=rankingPoints;
 
         const skillTitle=skills[skillIndex].title;
+
+        //this represent the key of the avg performance, created as the concat of all skills parameters by the char "-"
+        const avgPerformanceSkillParametersKey=skillParameters.join("-");
 
         //get all avg performance for the played skill of all users with a ranking points +-50 from the current one of the playing user
         const similarRankingUsers=await getDocs(
             query(collection(db,"users"),where("rankingPoints","<=",rankingPoints+50),where("rankingPoints",">=",rankingPoints-50),where("user","!=",auth.currentUser.uid))
         );
 
-        //filter users not considering users with avg performance = -1
-        const filteredSimilarRankingUsers=similarRankingUsers.docs.filter(u=>u.data().avgPerformances[skillTitle].value!=-1);
+        //filter users not considering users with a defined avg performance for current skill and parameters
+        const filteredSimilarRankingUsers=similarRankingUsers.docs.filter(u=>u.data().avgPerformances[skillTitle]!=undefined && u.data().avgPerformances[skillTitle][avgPerformanceSkillParametersKey]!=undefined);
 
         var avgOfAvgPerformances;
         
         //if there is at least a user with similar ranking points to me
         if(filteredSimilarRankingUsers.length!=0){
             //avg of avg performances of the played skill
-            avgOfAvgPerformances=filteredSimilarRankingUsers.map(u=>u.data().avgPerformances[skillTitle].value).reduce((a,b)=>a+b,0)/filteredSimilarRankingUsers.length;
-        }else{  //if there is no user with similar ranking point to me, set avg to the double of performance Parameter, so the user's ranking point can grow up
-            avgOfAvgPerformances=performanceParameter*2;
+            avgOfAvgPerformances=filteredSimilarRankingUsers.map(u=>u.data().avgPerformances[skillTitle][avgPerformanceSkillParametersKey].value).reduce((a,b)=>a+b,0)/filteredSimilarRankingUsers.length;
+        }else{  //if there is no user with similar ranking point to the user, calculate the avg based on the ranking point of the user
+            avgOfAvgPerformances=calculateEstimatedAvgPerformanceBasedOnRankingPoints(rankingPoints,skillTitle,skillParameters);
         }
 
         //difference between performance parameter value obtained in this game and the avg of avgs of performances
@@ -413,7 +429,12 @@ const calculateNewRankingPoints=async(rankingPoints,performanceParameter,skillIn
             newRankingPoints=rankingPoints+gainedPoints;
         }
 
-        const earnedRankingPointsString="Avg of "+skills[skillIndex].skillPerformanceParameter+": "+avgOfAvgPerformances.toFixed(3);
+        //if new ranking points is <0, set it to 0
+        if(newRankingPoints<0){
+            newRankingPoints=0;
+        }
+
+        const earnedRankingPointsString="Avg of "+prettyPrintParameter(skills[skillIndex].skillPerformanceParameter)+": "+avgOfAvgPerformances.toFixed(3);
 
         return [true,newRankingPoints,earnedRankingPointsString];
     }catch(e){
@@ -421,7 +442,35 @@ const calculateNewRankingPoints=async(rankingPoints,performanceParameter,skillIn
     }
 }
 
+const getRankingPointsLeaderboard=async(limitResults,rankingPointsLimit=null)=>{
+    try{
+        //if rankingPointsLimit is null, get fist "limitResults" users
+        var rankingPointsLeaderboard;
+
+        if(rankingPointsLimit==null){
+            rankingPointsLeaderboard=await getDocs(
+                query(collection(db,"users"),orderBy("rankingPoints"),limit(limitResults))
+            );
+        }else{
+            //rankingPointsLimit indicates that all users returned by the folliiwng query have to have ranking points under the limit
+            rankingPointsLeaderboard=await getDocs(
+                query(collection(db,"users"),orderBy("rankingPoints"),where("rankingPoints","<",rankingPointsLimit),limit(limitResults))
+            );
+        }
+
+        var leaderbord=[];
+        for(const i in rankingPointsLeaderboard.docs){
+            const data=rankingPointsLeaderboard.docs[i].data();
+            leaderbord.push({user:data.username,rankingPoints:data.rankingPoints,profileImage:data.profileImage});
+        }
+
+        return [true,leaderbord];
+    }catch(e){ 
+        return [false,e.message];
+    }
+}
+
 export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillLeaderboard,
     storeGameResult,updateUserCountry,updateUserUsername,getAllUserGames,deleteAccount,
-    calculateNewRankingPoints
+    calculateNewRankingPoints, getRankingPointsLeaderboard
 };
