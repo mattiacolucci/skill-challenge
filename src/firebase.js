@@ -283,32 +283,33 @@ const storeGameResult=async (result,skillIndex,skillParameters,records,isRecord,
             var recordIds=[]
             for (const recordType in records){
                 for(const recordParameter in records[recordType]){
+                    //if a record have been set before, get game id of the record
                     if(records[recordType][recordParameter].gameId!=null){
                         //get record game id
                         recordIds.push(records[recordType][recordParameter].gameId);
+                    }
 
-                        //check if this record had been surpassed by the current game to store
-                        if(isRecord[recordType][recordParameter]<0 || isRecord[recordType][recordParameter]==null){  //if the current game to store is a new record for recordParameter
+                    //check if this record had been surpassed by the current game to store
+                    if(isRecord[recordType][recordParameter]<0 || isRecord[recordType][recordParameter]==null){  //if the current game to store is a new record for recordParameter
 
-                            //store in the user profile that he is done a new record. This is done only if the new record is not a PB
-                            if(recordType!="PB"){
-                                await runTransaction(db,async(transaction)=>{
-                                    const currUser = await transaction.get(doc(db,"users",auth.currentUser.uid));
+                        //store in the user profile that he is done a new record. This is done only if the new record is not a PB
+                        if(recordType!="PB"){
+                            await runTransaction(db,async(transaction)=>{
+                                const currUser = await transaction.get(doc(db,"users",auth.currentUser.uid));
 
-                                    const userSkillPastRecords=(currUser.data().records[result.skill]!=undefined ? currUser.data().records[result.skill] : []);
+                                const userSkillPastRecords=(currUser.data().records[result.skill]!=undefined ? currUser.data().records[result.skill] : []);
 
-                                    transaction.update(doc(db,"users",auth.currentUser.uid),{
-                                        records:{...currUser.data().records,[result.skill]:[
-                                            ...userSkillPastRecords,
-                                            {
-                                                recordType:recordType, recordParameter:recordParameter,
-                                                skillParameters:skillParameters.map((p,index)=>{return {[skills[skillIndex].skillParametersLongName[index]]:p}}),
-                                                value: result[recordParameter], date:new Date()
-                                            }
-                                        ]}
-                                    })
+                                transaction.update(doc(db,"users",auth.currentUser.uid),{
+                                    records:{...currUser.data().records,[result.skill]:[
+                                        ...userSkillPastRecords,
+                                        {
+                                            recordType:recordType, recordParameter:recordParameter,
+                                            skillParameters:skillParameters.map((p,index)=>{return {[skills[skillIndex].skillParametersLongName[index]]:p}}),
+                                            value: result[recordParameter], date:new Date()
+                                        }
+                                    ]}
                                 })
-                            }
+                            })
                         }
                     }
                 }
