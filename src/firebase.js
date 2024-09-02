@@ -264,10 +264,6 @@ const getLastGamesUser=async(skill,skillParameters,user,numGames)=>{
 const storeGameResult=async (result,skillIndex,skillParameters,records,isRecord,newLv,newExp,newRankingPoints)=>{
     try{
         await runTransaction(db,async(transactionDB)=>{
-            //get user data
-            const currUser = await transactionDB.get(doc(db,"users",auth.currentUser.uid));
-            var newUser=currUser.data();
-
             //get last 5 user games
             const [resp, lastGames]=await getLastGamesUser(skillIndex,skillParameters,auth.currentUser.uid,5);
 
@@ -314,6 +310,10 @@ const storeGameResult=async (result,skillIndex,skillParameters,records,isRecord,
                     }
                 }
             }
+
+            //get user data
+            const currUser = await transactionDB.get(doc(db,"users",auth.currentUser.uid));
+            var newUser=currUser.data();
 
             //remouve duplicates
             recordIds=[...new Set(recordIds)];

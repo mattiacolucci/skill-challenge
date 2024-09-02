@@ -327,7 +327,7 @@ const FastTyping=(props)=>{
                 <div className="w-screen flex flex-row items-center mt-5 px-16">
                     <Chronometer ref={chronometerRef}/>
                     {//if the game is ended display the continue button
-                    gameEnded && <button className="text-base px-3 py-2 ml-auto bg-blue-700 self-end rounded-sm mt-auto" onClick={goResults}>CONTINUE ➣</button>}
+                    gameEnded && <button className="text-base px-3 py-2 ml-auto bg-blue-700 self-end rounded-sm mt-auto" onClick={()=>goResults()}>CONTINUE ➣</button>}
                 </div>
 
                 {//display all words typed and the time in which they have been typed
