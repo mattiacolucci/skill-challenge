@@ -146,5 +146,21 @@ function calculateEstimatedAvgPerformanceBasedOnRankingPoints(rankingPoints,skil
     return avgPerformance;
 }
 
+const filterUserLeaderboard=(array)=>{
+    var arrayFiltered=[];
+
+    if(array==[]){
+        return arrayFiltered;
+    }
+
+    for(const i in array){
+        if(!arrayFiltered.find(g=>g.user==array[i].data().user)){
+            arrayFiltered.push({...array[i].data(),id:array[i].id});
+        }
+    }
+
+    return arrayFiltered;
+}
+
 export {calculateMaxValueExpByLv, calculateEarnedExpSkill, parseJwt, getCountryByIp, TooltipChartCustom, prettyPrintDate, 
-    prettyPrintParameter, numberMod, calculateAvgAccumulately, calculateEstimatedAvgPerformanceBasedOnRankingPoints};
+    prettyPrintParameter, numberMod, calculateAvgAccumulately, calculateEstimatedAvgPerformanceBasedOnRankingPoints,filterUserLeaderboard};

@@ -30,9 +30,9 @@ function App() {
               <Link to="/play" className='w-full h-[30px] rounded-md text-left hover:bg-white hover:bg-opacity-40 transition-all duration-300 px-4 leading-[30px]'>
                 PLAY
               </Link>
-              <button className='w-full h-[30px] rounded-md text-left hover:bg-white hover:bg-opacity-40 transition-all duration-300 px-4 leading-[30px]'>
-                MENU 2
-              </button>
+              <Link to="/leaderboard" className='w-full h-[30px] rounded-md text-left hover:bg-white hover:bg-opacity-40 transition-all duration-300 px-4 leading-[30px]'>
+                LEADERBOARD
+              </Link>
               <button className='w-full h-[30px] rounded-md text-left hover:bg-white hover:bg-opacity-40 transition-all duration-300 px-4 leading-[30px]'>
                 MENU 3
               </button>

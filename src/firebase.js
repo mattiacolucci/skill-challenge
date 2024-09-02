@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { addDoc, collection, count, deleteDoc, doc, DocumentSnapshot, getDoc, getDocs, getFirestore, limit, orderBy, query, QuerySnapshot, runTransaction, setDoc, updateDoc, where } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { skills } from "./assets/data";
-import { calculateAvgAccumulately, calculateEstimatedAvgPerformanceBasedOnRankingPoints, prettyPrintParameter } from "./utility";
+import { calculateAvgAccumulately, calculateEstimatedAvgPerformanceBasedOnRankingPoints, filterUserLeaderboard, prettyPrintParameter } from "./utility";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -91,75 +91,95 @@ const getUserData = async (uid)=>{
 
 //get skill leaderbord. Get best games for each skill parameter in the world and in the user's country. Funrthermore, get 
 //user's personal best games according to each skill parameter
-const getSkillLeaderboard=async (uidUser, skill, skillParameters, country, limitResults=1)=>{
+//type parameter indicates if I want WR, NR and PB leaderboards (all) or only WR or NR leaderboard
+const getSkillLeaderboard=async (uidUser, skill, skillParameters, country, limitResults=1, type="all")=>{
     var records={};
 
     try{
         switch(skill){
             case 0:  //FAST TYPING SKILL
-                //get world records
-                const totTimeWR=await getDocs(
+                //get world records only if type is "all" or "WR"
+                const totTimeWRQuery=(type=="all" || type=="WR")?
+                await getDocs(
                     query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
                     where("skill","==",skills[0].title),orderBy("totTime"),limit(limitResults))
-                );
-                const avgTimeWR=await getDocs(
+                ):{docs:[]};
+                const avgTimeWRQuery=(type=="all" || type=="WR")?
+                await getDocs(
                     query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
                     where("skill","==",skills[0].title),orderBy("avgTime"),limit(limitResults))
-                );
-                const fastestWordWR=await getDocs(
+                ):{docs:[]};
+                const fastestWordWRQuery=(type=="all" || type=="WR")?
+                await getDocs(
                     query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
                     where("skill","==",skills[0].title),orderBy("fastestWord"),limit(limitResults))
-                );
+                ):{docs:[]};
 
-                //get national records
+                //take only best game per user
+                const totTimeWR=filterUserLeaderboard(totTimeWRQuery.docs);
+                const avgTimeWR=filterUserLeaderboard(avgTimeWRQuery.docs);
+                const fastestWordWR=filterUserLeaderboard(fastestWordWRQuery.docs);
+
+                //get national records only if type is "all" or "NR"
                 const nationalUsers=await getDocs(query(collection(db,"users"),where("country","==",country)));
-                var totTimeNR, avgTimeNR, fastestWordNR;
+                var totTimeNRQuery, avgTimeNRQuery, fastestWordNRQuery;
                 if(!nationalUsers.empty){  //if national users exists get national records
 
                     const nationalUsersIds=nationalUsers.docs.map(usr=>usr.id);
 
-                    totTimeNR=await getDocs(
+                    totTimeNRQuery=(type=="all" || type=="NR")?
+                    await getDocs(
                         query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
                         where("skill","==",skills[0].title),where("user","in",nationalUsersIds),orderBy("totTime"),limit(limitResults))
-                    );
-                    avgTimeNR=await getDocs(
+                    ):{docs:[]};
+                    avgTimeNRQuery=(type=="all" || type=="NR")?
+                    await getDocs(
                         query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
                         where("skill","==",skills[0].title),where("user","in",nationalUsersIds),orderBy("avgTime"),limit(limitResults))
-                    );
-                    fastestWordNR=await getDocs(
+                    ):{docs:[]};
+                    fastestWordNRQuery=(type=="all" || type=="NR")?
+                    await getDocs(
                         query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
                         where("skill","==",skills[0].title),where("user","in",nationalUsersIds),orderBy("fastestWord"),limit(limitResults))
-                    );
+                    ):{docs:[]};
                 }else{  //there is no national record in this case
-                    totTimeNR=0;
-                    avgTimeNR=0;
-                    fastestWordNR=0;
+                    totTimeNRQuery=[];
+                    avgTimeNRQuery=[];
+                    fastestWordNRQuery=[];
                 }
 
+                //take only best game per user
+                const totTimeNR=(totTimeNRQuery!=[])?filterUserLeaderboard(totTimeNRQuery.docs):[];
+                const avgTimeNR=(avgTimeNRQuery!=[])?filterUserLeaderboard(avgTimeNRQuery.docs):[];
+                const fastestWordNR=(fastestWordNRQuery!=[])?filterUserLeaderboard(fastestWordNRQuery.docs):[];
+
                 //get personal bests
-                const totTimePB=await getDocs(
+                const totTimePB=(type=="all")?
+                await getDocs(
                     query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
                     where("skill","==",skills[0].title),where("user","==",uidUser),orderBy("totTime"),limit(limitResults))
-                );
-                const avgTimePB=await getDocs(
+                ):{empty:true};
+                const avgTimePB=(type=="all")?
+                await getDocs(
                     query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
                     where("skill","==",skills[0].title),where("user","==",uidUser),orderBy("avgTime"),limit(limitResults))
-                );
-                const fastestWordPB=await getDocs(
+                ):{empty:true};
+                const fastestWordPB=(type=="all")?
+                await getDocs(
                     query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
                     where("skill","==",skills[0].title),where("user","==",uidUser),orderBy("fastestWord"),limit(limitResults))
-                );
+                ):{empty:true};
 
                 records={
                     "WR":{
-                        totTime:(!totTimeWR.empty)?{record:totTimeWR.docs.map(g=>g.data().totTime),user:totTimeWR.docs.map(g=>g.data().user),gameId:totTimeWR.docs.map(g=>g.id)}:{record:null,user:null,gameId:null},
-                        avgTime:(!avgTimeWR.empty)?{record:avgTimeWR.docs.map(g=>g.data().avgTime),user:avgTimeWR.docs.map(g=>g.data().user),gameId:avgTimeWR.docs.map(g=>g.id)}:{record:null,user:null,gameId:null},
-                        fastestWord:(!fastestWordWR.empty)?{record:fastestWordWR.docs.map(g=>g.data().fastestWord),user:fastestWordWR.docs.map(g=>g.data().user),gameId:fastestWordWR.docs.map(g=>g.id)}:{record:null,user:null,gameId:null},
+                        totTime:(totTimeWR.length!=0)?{record:totTimeWR.map(g=>g.totTime),user:totTimeWR.map(g=>g.user),gameId:totTimeWR.map(g=>g.id)}:{record:null,user:null,gameId:null},
+                        avgTime:(avgTimeWR.length!=0)?{record:avgTimeWR.map(g=>g.avgTime),user:avgTimeWR.map(g=>g.user),gameId:avgTimeWR.map(g=>g.id)}:{record:null,user:null,gameId:null},
+                        fastestWord:(fastestWordWR.length!=0)?{record:fastestWordWR.map(g=>g.fastestWord),user:fastestWordWR.map(g=>g.user),gameId:fastestWordWR.map(g=>g.id)}:{record:null,user:null,gameId:null},
                     },
                     "NR":{
-                        totTime:(totTimeNR.empty || totTimeNR==0)?{record:null,user:null,gameId:null}:{record:totTimeNR.docs.map(g=>g.data().totTime),user:totTimeNR.docs.map(g=>g.data().user),gameId:totTimeNR.docs.map(g=>g.id)},
-                        avgTime:(avgTimeNR.empty || avgTimeNR==0)?{record:null,user:null,gameId:null}:{record:avgTimeNR.docs.map(g=>g.data().avgTime),user:avgTimeNR.docs.map(g=>g.data().user),gameId:avgTimeNR.docs.map(g=>g.id)},
-                        fastestWord:(fastestWordNR.empty || fastestWordNR==0)?{record:null,user:null,gameId:null}:{record:fastestWordNR.docs.map(g=>g.data().fastestWord),user:fastestWordNR.docs.map(g=>g.data().user),gameId:fastestWordNR.docs.map(g=>g.id)},
+                        totTime:(totTimeNR.length==0)?{record:null,user:null,gameId:null}:{record:totTimeNR.map(g=>g.totTime),user:totTimeNR.map(g=>g.user),gameId:totTimeNR.map(g=>g.id)},
+                        avgTime:(avgTimeNR.length==0)?{record:null,user:null,gameId:null}:{record:avgTimeNR.map(g=>g.avgTime),user:avgTimeNR.map(g=>g.user),gameId:avgTimeNR.map(g=>g.id)},
+                        fastestWord:(fastestWordNR.length==0)?{record:null,user:null,gameId:null}:{record:fastestWordNR.map(g=>g.fastestWord),user:fastestWordNR.map(g=>g.user),gameId:fastestWordNR.map(g=>g.id)},
                     },
                     "PB":{
                         totTime:(!totTimePB.empty)?{record:totTimePB.docs.map(g=>g.data().totTime),user:totTimePB.docs.map(g=>g.data().user),gameId:totTimePB.docs.map(g=>g.id)}:{record:null,user:null,gameId:null},

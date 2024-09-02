@@ -6,6 +6,7 @@ import Play from './pages/Play.jsx'
 import Login from './pages/Login.jsx'
 import PrivateRoute from './PrivateRoute.jsx'
 import Profile from './pages/Profile.jsx'
+import Leaderboard from './pages/Leaderboard.jsx'
 
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>
@@ -13,6 +14,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/" element={<App />}/>
         <Route path="/play" element={<PrivateRoute><Play /></PrivateRoute>}/>
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>}/>
+        <Route path="/leaderboard" element={<PrivateRoute><Leaderboard /></PrivateRoute>}/>
         <Route path='/login' element={<Login/>}/>
       </Routes>
     </BrowserRouter>
