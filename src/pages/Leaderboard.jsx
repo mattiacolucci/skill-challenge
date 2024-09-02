@@ -170,28 +170,30 @@ const Leaderboard=(props)=>{
             </div>
 
             {selectedType==0 && //leaderboard
-                <div className="w-screen mt-2 !flex-1 flex flex-row py-4 gap-3 pr-3">
+                <div className="w-screen !flex-1 flex flex-row py-4 gap-3 pr-3">
                     <div className={(menuHover?"basis-[18%]":"basis-[36px]")+" h-full flex flex-col items-center gap-4 border-r-2 border-white border-opacity-60 p-2 px-3 transition-all duration-300"} onMouseOver={()=>setMenuHover(true)} onMouseLeave={()=>setMenuHover(false)}>
-                        {skills.map((skill,index)=>{
-                            return(
-                                <div className={
-                                    (menuHover?"w-full":"w-[36px] py-2")+
-                                    " flex flex-row items-center gap-3 p-1 px-2 rounded-md overflow-hidden cursor-pointer "
-                                    +(selectedLeaderboard.skill==index?"bg-mainBlue bg-opacity-30":"bg-white bg-opacity-15")}
-                                onClick={()=>changeSelectedSkill(index)} key={skill.title}>
-                                    <i className={"text-white text-[20px] leading-[0] "+skill.icon}></i>
-                                    {menuHover && <div className="text-white font-default line-clamp-1">{skill.title}</div>}
-                                </div>
-                            )
-                        })}
+                        <div className={"w-full flex flex-col h-[140px] gap-4 "+(menuHover?"overflow-auto pr-2":"overflow-hidden")}>
+                            {skills.map((skill,index)=>{
+                                return(
+                                    <div className={
+                                        (menuHover?"w-full":"w-[36px]")+
+                                        " flex flex-row flex-none items-center gap-3 px-2 py-2 rounded-md overflow-hidden cursor-pointer "
+                                        +(selectedLeaderboard.skill==index?"bg-mainBlue bg-opacity-30":"bg-white bg-opacity-15")}
+                                    onClick={()=>changeSelectedSkill(index)} key={skill.title}>
+                                        <i className={"text-white text-[20px] leading-[0] "+skill.icon}></i>
+                                        {menuHover && <div className="text-white text-[15px] leading-[15px] font-default line-clamp-1" title={skill.title}>{skill.title}</div>}
+                                    </div>
+                                )
+                            })}
+                        </div>
 
                         <div className="w-full h-[2px] bg-white bg-opacity-70 mt-auto"></div>
 
-                        <div className={(menuHover?"w-full":"w-[36px]")+" text-white text-[18px] h-[36px] leading-[36px] rounded-md text-center cursor-pointer "+(selectedLeaderboard.type=="WR"?"bg-mainBlue bg-opacity-30":"bg-white bg-opacity-15")}
+                        <div className={(menuHover?"w-full":"w-[36px]")+" text-white text-[16px] h-[36px] leading-[36px] rounded-md text-center cursor-pointer "+(selectedLeaderboard.type=="WR"?"bg-mainBlue bg-opacity-30":"bg-white bg-opacity-15")}
                         onClick={()=>changeSelectedType("WR")}>
                             {menuHover?"WORLD":"W"}
                         </div>
-                        <div className={(menuHover?"w-full":"w-[36px]")+" text-white text-[18px] h-[36px] leading-[36px] rounded-md text-center cursor-pointer "+(selectedLeaderboard.type=="NR"?"bg-mainBlue bg-opacity-30":"bg-white bg-opacity-15")}
+                        <div className={(menuHover?"w-full":"w-[36px]")+" text-white text-[16px] h-[36px] leading-[36px] rounded-md text-center cursor-pointer "+(selectedLeaderboard.type=="NR"?"bg-mainBlue bg-opacity-30":"bg-white bg-opacity-15")}
                         onClick={()=>changeSelectedType("NR")}>
                             {menuHover?"NATIONAL":"N"}
                         </div>
