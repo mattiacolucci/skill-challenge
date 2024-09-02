@@ -5,6 +5,7 @@ import { getSkillLeaderboard, getUserData } from "../firebase";
 import { prettyPrintParameter } from "../utility";
 import { useCountries } from "use-react-countries";
 import { Option, Select } from "@material-tailwind/react";
+import { Link } from "react-router-dom";
 
 const Leaderboard=(props)=>{
     const [selectedType,setSelectedType]=useState(0);
@@ -160,7 +161,10 @@ const Leaderboard=(props)=>{
 
     return(
         <Container overflowHideen={true} bg="bg-resultsBg">
-            <div className="text-white text-2xl mt-3">LEADERBOARD</div>
+            <div className="w-full flex flex-row">
+                <div className="text-white text-lg font-default pl-3 basis-[30%] mt-2"><Link to="/">SKILL CHALLENGE</Link></div>
+                <div className="text-white text-2xl basis-[40%] text-center mt-3">LEADERBOARD</div>
+            </div>
 
             <div className="relative flex flex-row items-center gap-5 bg-tooltipColor rounded-md p-1 px-3">
                 <div className="text-white font-default text-[16px] w-[150px] text-center z-[2] cursor-pointer" onClick={()=>setSelectedType(0)}>LEADERBOARD</div>
@@ -245,13 +249,21 @@ const Leaderboard=(props)=>{
                     </div>
 
                     <div className="relative h-full flex-1 flex flex-row items-center p-2 gap-3">
-                        {!isLoading && searchedLeaderboard.type=="WR" && Object.keys(leaderboard[searchedLeaderboard.skill][searchedLeaderboard.type]).map((skillResultParameter)=>{
+                        {!isLoading && Object.keys(
+                            (searchedLeaderboard.type=="WR")?
+                            leaderboard[searchedLeaderboard.skill][searchedLeaderboard.type]:  //if type="WR", map leaderboard[skill][WR]
+                            leaderboard[searchedLeaderboard.skill][searchedLeaderboard.type][searchedLeaderboard.country]  //if type="NR", map leaderboard[skill][NR][country]
+                        ).map((skillResultParameter)=>{
+                            const currentLeaderboard=(searchedLeaderboard.type=="WR")?
+                            leaderboard[searchedLeaderboard.skill][searchedLeaderboard.type][skillResultParameter]:   //if type="WR", currentLeaderboard=leaderboard[skill][WR][param]
+                            leaderboard[searchedLeaderboard.skill][searchedLeaderboard.type][searchedLeaderboard.country][skillResultParameter];  //if type="NR", currentLeaderboard=leaderboard[skill][NR][country][param]
+
                             return(
                                 <div className="h-full flex-1 flex flex-col items-center gap-2 bg-tooltipColor rounded-md p-2" key={skillResultParameter}>
                                     <div className="w-[80%] text-white text-center text-base font-navbar p-1 px-2 bg-mainBlue bg-opacity-40 rounded-md">{prettyPrintParameter(skillResultParameter)}</div>
-                                    {leaderboard[searchedLeaderboard.skill][searchedLeaderboard.type][skillResultParameter].user!=null && 
-                                    leaderboard[searchedLeaderboard.skill][searchedLeaderboard.type][skillResultParameter].user.map((user,index)=>{
-                                        const value = leaderboard[searchedLeaderboard.skill][searchedLeaderboard.type][skillResultParameter].record[index];
+                                    {currentLeaderboard.user!=null && 
+                                    currentLeaderboard.user.map((user,index)=>{
+                                        const value = currentLeaderboard.record[index];
                                         const userData = leaderboardUsers.filter(u=>u.id==user)[0];
 
                                         return(
@@ -267,36 +279,7 @@ const Leaderboard=(props)=>{
                                         )
                                     })}
 
-                                    {leaderboard[searchedLeaderboard.skill][searchedLeaderboard.type][skillResultParameter].user==null &&
-                                    <div className="text-white text-opacity-70">NO RESULTS FOUND</div>
-                                    }
-                                </div>
-                            )
-                        })}
-
-                        {!isLoading && searchedLeaderboard.type=="NR" && Object.keys(leaderboard[searchedLeaderboard.skill][searchedLeaderboard.type][searchedLeaderboard.country]).map((skillResultParameter)=>{
-                            return(
-                                <div className="h-full flex-1 flex flex-col items-center gap-2 bg-tooltipColor rounded-md p-2" key={skillResultParameter}>
-                                    <div className="w-[80%] text-white text-center text-base font-navbar p-1 px-2 bg-mainBlue bg-opacity-40 rounded-md">{prettyPrintParameter(skillResultParameter)}</div>
-                                    {leaderboard[searchedLeaderboard.skill][searchedLeaderboard.type][searchedLeaderboard.country][skillResultParameter].user!=null && 
-                                    leaderboard[searchedLeaderboard.skill][searchedLeaderboard.type][searchedLeaderboard.country][skillResultParameter].user.map((user,index)=>{
-                                        const value = leaderboard[searchedLeaderboard.skill][searchedLeaderboard.type][searchedLeaderboard.country][skillResultParameter].record[index];
-                                        const userData = leaderboardUsers.filter(u=>u.id==user)[0];
-
-                                        return(
-                                            <div className="w-full flex flex-row bg-white bg-opacity-20 items-center justify-between p-1 px-3 rounded-md">
-                                                <div className={"text-white text-[14px] h-[20px] leading-[20px] text-center rounded-md px-[6px] "+
-                                                (((index+1)>3)?"bg-white bg-opacity-30":(((index+1)==3)?"bg-yellow-gold bg-opacity-30":((index+1)==2)?"bg-gray-700 bg-opacity-50":"bg-yellow-gold bg-opacity-65"))}>{index+1}</div>
-                                                <div className="flex flex-row gap-4 items-center">
-                                                    <img className="w-[20px] h-[20px] rounded-full" src={userData.profileImage}></img>
-                                                    <div className="text-white font-navbar">{userData.username}</div>
-                                                </div>
-                                                <div className="text-white text-opacity-70 font-default">{value}</div>
-                                            </div>
-                                        )
-                                    })}
-
-                                    {leaderboard[searchedLeaderboard.skill][searchedLeaderboard.type][searchedLeaderboard.country][skillResultParameter].user==null &&
+                                    {currentLeaderboard.user==null &&
                                     <div className="text-white text-opacity-70">NO RESULTS FOUND</div>
                                     }
                                 </div>
