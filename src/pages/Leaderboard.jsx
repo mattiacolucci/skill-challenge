@@ -69,14 +69,16 @@ const Leaderboard=(props)=>{
         }
 
         //if never fetched leaderboard of selected skill
-        //or if never fetched the selcted type of leaderboard (World or National) of the selected skill
+        //or if never fetched the selcted parameters of the selected skill
+        //or if never fetched the selcted type of leaderboard (World or National) of the selected skill and its parameters
         //or if never fetched the National leaderboard of the selected country
         //fetch it.
         //This way we do not get leaderboards alread fetched from the db, in order to limitate the number of reads done.
         //We fetch only first 20 users for each leaderboard
         if(leaderboardCopy[selectedLeaderboard.skill]==undefined || 
-            leaderboardCopy[selectedLeaderboard.skill][selectedLeaderboard.type]==undefined ||
-            (selectedLeaderboard.type=="NR" && leaderboardCopy[selectedLeaderboard.skill][selectedLeaderboard.type][selectedLeaderboard.country]==undefined)
+            leaderboardCopy[selectedLeaderboard.skill][selectedLeaderboard.skillsParameters]==undefined ||
+            leaderboardCopy[selectedLeaderboard.skill][selectedLeaderboard.skillsParameters][selectedLeaderboard.type]==undefined ||
+            (selectedLeaderboard.type=="NR" && leaderboardCopy[selectedLeaderboard.skill][selectedLeaderboard.skillsParameters][selectedLeaderboard.type][selectedLeaderboard.country]==undefined)
         ){
             dbResp=await getSkillLeaderboard(props.user.uid,selectedLeaderboard.skill,
                 skills[selectedLeaderboard.skill].skillParametersPossibleValues[selectedLeaderboard.skillsParameters],
@@ -89,8 +91,10 @@ const Leaderboard=(props)=>{
         const resp=dbResp[0];
         const leaderboardDB=dbResp[1];
 
+        //if leaderboard is get correctly
         if(resp==null || resp){
-            //get user data of each user
+            //get user data of each user in the leaderboard, if never fetched before
+            //so loop thorugh all users in the leaderboard, check if it was alread fetched, if it not, fetch it
             for(const key in leaderboardDB){
                 for(const key2 in leaderboardDB[key]){
                     if(leaderboardDB[key][key2].user!=null){
@@ -107,23 +111,28 @@ const Leaderboard=(props)=>{
 
             //store fetched leaderboard
             if(leaderboardDB!=null){
-                //if never fetched this skill, initialize it
+                //if never fetched a leaderboard of the selected skill, initialize it
                 if(leaderboardCopy[selectedLeaderboard.skill]==undefined){
                     leaderboardCopy[selectedLeaderboard.skill]={};
                 }
 
-                //if never fetched WR or NR for the skill, initialize it
-                if(leaderboardCopy[selectedLeaderboard.skill][selectedLeaderboard.type]==undefined){
-                    leaderboardCopy[selectedLeaderboard.skill][selectedLeaderboard.type]={};
+                //if never fetched a leaderboard of the selected skills parameters and skill itself, initialize it
+                if(leaderboardCopy[selectedLeaderboard.skill][selectedLeaderboard.skillsParameters]==undefined){
+                    leaderboardCopy[selectedLeaderboard.skill][selectedLeaderboard.skillsParameters]={};
+                }
+
+                //if never fetched a leaderboard WR or NR for the selected skill, initialize it
+                if(leaderboardCopy[selectedLeaderboard.skill][selectedLeaderboard.skillsParameters][selectedLeaderboard.type]==undefined){
+                    leaderboardCopy[selectedLeaderboard.skill][selectedLeaderboard.skillsParameters][selectedLeaderboard.type]={};
                 }
 
                 //if fetched NR, since leaderboardDB is not null, this country has never been fetched and so store leaderboard
                 //relative to that country
                 if(selectedLeaderboard.type=="NR"){
-                    leaderboardCopy[selectedLeaderboard.skill][selectedLeaderboard.type][selectedLeaderboard.country]=leaderboardDB[selectedLeaderboard.type];
+                    leaderboardCopy[selectedLeaderboard.skill][selectedLeaderboard.skillsParameters][selectedLeaderboard.type][selectedLeaderboard.country]=leaderboardDB[selectedLeaderboard.type];
                 }else{
                     //if fetched WR, store the World leaderboard relative to the selected skill
-                    leaderboardCopy[selectedLeaderboard.skill][selectedLeaderboard.type]=leaderboardDB[selectedLeaderboard.type];
+                    leaderboardCopy[selectedLeaderboard.skill][selectedLeaderboard.skillsParameters][selectedLeaderboard.type]=leaderboardDB[selectedLeaderboard.type];
                 }
             }
 
@@ -152,6 +161,12 @@ const Leaderboard=(props)=>{
         copy.country=newCountry;
         setSelectedLeaderboard(copy);
     }
+    
+    const changeSelectedSkillParameters=(newParameters)=>{
+        const copy=structuredClone(selectedLeaderboard);
+        copy.skillsParameters=newParameters;
+        setSelectedLeaderboard(copy);
+    }
 
     const searchLeaderboard=async()=>{
         setIsLoading(true);
@@ -174,9 +189,9 @@ const Leaderboard=(props)=>{
             </div>
 
             {selectedType==0 && //leaderboard
-                <div className="w-screen !flex-1 flex flex-row py-4 gap-3 pr-3">
+                <div className="w-screen !flex-1 flex flex-row py-4 gap-3 pr-3 overflow-hidden">
                     <div className={(menuHover?"basis-[18%]":"basis-[36px]")+" h-full flex flex-col items-center gap-4 border-r-2 border-white border-opacity-60 p-2 px-3 transition-all duration-300"} onMouseOver={()=>setMenuHover(true)} onMouseLeave={()=>setMenuHover(false)}>
-                        <div className={"w-full flex flex-col h-[140px] gap-4 "+(menuHover?"overflow-auto pr-2":"overflow-hidden")}>
+                        <div className={"w-full flex flex-col h-[150px] gap-4 "+(menuHover?"overflow-auto pr-2":"overflow-hidden")}>
                             {skills.map((skill,index)=>{
                                 return(
                                     <div className={
@@ -191,20 +206,37 @@ const Leaderboard=(props)=>{
                             })}
                         </div>
 
-                        <div className="w-full h-[2px] bg-white bg-opacity-70 mt-auto"></div>
+                        <div className="w-full h-[2px] bg-white bg-opacity-70"></div>
 
-                        <div className={(menuHover?"w-full":"w-[36px]")+" text-white text-[16px] h-[36px] leading-[36px] rounded-md text-center cursor-pointer "+(selectedLeaderboard.type=="WR"?"bg-mainBlue bg-opacity-30":"bg-white bg-opacity-15")}
+                        <div className={(menuHover?"w-full pb-1 overflow-x-auto overflow-y-hidden":"w-[36px]  overflow-hidden")+" flex flex-row gap-2 items-center"}>
+                            {menuHover && <>{skills[selectedLeaderboard.skill].skillParametersPossibleValues.map((param,index)=>{
+                                return(
+                                    <div className={(selectedLeaderboard.skillsParameters==index?"bg-mainBlue bg-opacity-30":"bg-white bg-opacity-15")+" rounded-md flex-none p-1 px-2 text-white text-[15px] cursor-pointer line-clamp-1"}
+                                    key={param.join("")+" "+index} onClick={()=>changeSelectedSkillParameters(index)}>
+                                        {param.join(" - ")}    
+                                    </div>
+                                )
+                            })}</>}
+
+                            {!menuHover && <div className="w-[36px] bg-mainBlue bg-opacity-30 rounded-md flex-none p-1 px-2 text-white text-[15px] cursor-pointer line-clamp-1">
+                                {skills[selectedLeaderboard.skill].skillParametersPossibleValues[selectedLeaderboard.skillsParameters].join(" - ")}    
+                            </div>}
+                        </div>
+
+                        <div className="w-full h-[2px] bg-white bg-opacity-70"></div>
+
+                        <div className={(menuHover?"w-full":"w-[32px]")+" text-white text-[16px] h-[32px] leading-[32px] rounded-md text-center cursor-pointer "+(selectedLeaderboard.type=="WR"?"bg-mainBlue bg-opacity-30":"bg-white bg-opacity-15")}
                         onClick={()=>changeSelectedType("WR")}>
                             {menuHover?"WORLD":"W"}
                         </div>
-                        <div className={(menuHover?"w-full":"w-[36px]")+" text-white text-[16px] h-[36px] leading-[36px] rounded-md text-center cursor-pointer "+(selectedLeaderboard.type=="NR"?"bg-mainBlue bg-opacity-30":"bg-white bg-opacity-15")}
+                        <div className={(menuHover?"w-full":"w-[32px]")+" text-white text-[16px] h-[32px] leading-[32px] rounded-md text-center cursor-pointer "+(selectedLeaderboard.type=="NR"?"bg-mainBlue bg-opacity-30":"bg-white bg-opacity-15")}
                         onClick={()=>changeSelectedType("NR")}>
                             {menuHover?"NATIONAL":"N"}
                         </div>
 
                         {selectedLeaderboard.type=="NR" && menuHover &&
                         <Select
-                            size="lg"
+                            size="md"
                             label="Select Country"
                             labelProps={{className:"text-white"}}
                             containerProps={{className:"!w-full !min-w-full"}}
@@ -237,7 +269,7 @@ const Leaderboard=(props)=>{
                             className="h-5 w-5 rounded-full object-cover"
                         />}
 
-                        <div className="w-full h-[2px] bg-white bg-opacity-70"></div>
+                        <div className="w-full h-[2px] bg-white bg-opacity-70 mt-auto"></div>
 
                         <div className={
                             (menuHover?"w-full":"w-[36px] py-2")+
@@ -251,12 +283,12 @@ const Leaderboard=(props)=>{
                     <div className="relative h-full flex-1 flex flex-row items-center p-2 gap-3">
                         {!isLoading && Object.keys(
                             (searchedLeaderboard.type=="WR")?
-                            leaderboard[searchedLeaderboard.skill][searchedLeaderboard.type]:  //if type="WR", map leaderboard[skill][WR]
-                            leaderboard[searchedLeaderboard.skill][searchedLeaderboard.type][searchedLeaderboard.country]  //if type="NR", map leaderboard[skill][NR][country]
+                            leaderboard[searchedLeaderboard.skill][searchedLeaderboard.skillsParameters][searchedLeaderboard.type]:  //if type="WR", map leaderboard[skill][WR]
+                            leaderboard[searchedLeaderboard.skill][searchedLeaderboard.skillsParameters][searchedLeaderboard.type][searchedLeaderboard.country]  //if type="NR", map leaderboard[skill][NR][country]
                         ).map((skillResultParameter)=>{
                             const currentLeaderboard=(searchedLeaderboard.type=="WR")?
-                            leaderboard[searchedLeaderboard.skill][searchedLeaderboard.type][skillResultParameter]:   //if type="WR", currentLeaderboard=leaderboard[skill][WR][param]
-                            leaderboard[searchedLeaderboard.skill][searchedLeaderboard.type][searchedLeaderboard.country][skillResultParameter];  //if type="NR", currentLeaderboard=leaderboard[skill][NR][country][param]
+                            leaderboard[searchedLeaderboard.skill][searchedLeaderboard.skillsParameters][searchedLeaderboard.type][skillResultParameter]:   //if type="WR", currentLeaderboard=leaderboard[skill][WR][param]
+                            leaderboard[searchedLeaderboard.skill][searchedLeaderboard.skillsParameters][searchedLeaderboard.type][searchedLeaderboard.country][skillResultParameter];  //if type="NR", currentLeaderboard=leaderboard[skill][NR][country][param]
 
                             return(
                                 <div className="h-full flex-1 flex flex-col items-center gap-2 bg-tooltipColor rounded-md p-2" key={skillResultParameter}>
