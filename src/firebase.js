@@ -463,26 +463,27 @@ const calculateNewRankingPoints=async(rankingPoints,performanceParameter,skillIn
     }
 }
 
-const getRankingPointsLeaderboard=async(limitResults,rankingPointsLimit=null)=>{
+const getRankingPointsLeaderboard=async(limitResults,rankingPointsLimit=null,country=null)=>{
     try{
         //if rankingPointsLimit is null, get fist "limitResults" users
         var rankingPointsLeaderboard;
 
         if(rankingPointsLimit==null){
-            rankingPointsLeaderboard=await getDocs(
-                query(collection(db,"users"),orderBy("rankingPoints"),limit(limitResults))
-            );
+            rankingPointsLeaderboard=
+            (country==null)?
+            await getDocs(query(collection(db,"users"),orderBy("rankingPoints","desc"),limit(limitResults))):
+            await getDocs(query(collection(db,"users"),where("country","==",country),orderBy("rankingPoints","desc"),limit(limitResults)));
         }else{
             //rankingPointsLimit indicates that all users returned by the folliiwng query have to have ranking points under the limit
-            rankingPointsLeaderboard=await getDocs(
-                query(collection(db,"users"),orderBy("rankingPoints"),where("rankingPoints","<",rankingPointsLimit),limit(limitResults))
-            );
+            rankingPointsLeaderboard=(country==null)?
+            await getDocs(query(collection(db,"users"),orderBy("rankingPoints","desc"),where("rankingPoints","<",rankingPointsLimit),limit(limitResults))):
+            await getDocs(query(collection(db,"users"),where("country","==",country),orderBy("rankingPoints","desc"),where("rankingPoints","<",rankingPointsLimit),limit(limitResults)));
         }
 
         var leaderbord=[];
         for(const i in rankingPointsLeaderboard.docs){
             const data=rankingPointsLeaderboard.docs[i].data();
-            leaderbord.push({user:data.username,rankingPoints:data.rankingPoints,profileImage:data.profileImage});
+            leaderbord.push({user:data.username,rankingPoints:data.rankingPoints,profileImage:data.profileImage,country:data.country,id:rankingPointsLeaderboard.docs[i].id});
         }
 
         return [true,leaderbord];

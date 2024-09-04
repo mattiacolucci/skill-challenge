@@ -1,7 +1,7 @@
 import { cloneElement, useEffect, useState } from "react";
 import Container from "../components/Container"
 import { countries, skills } from "../assets/data";
-import { getSkillLeaderboard, getUserData } from "../firebase";
+import { getRankingPointsLeaderboard, getSkillLeaderboard, getUserData } from "../firebase";
 import { prettyPrintParameter } from "../utility";
 import { Option, Select } from "@material-tailwind/react";
 import { Link } from "react-router-dom";
@@ -14,6 +14,11 @@ const Leaderboard=(props)=>{
     const [selectedLeaderboard,setSelectedLeaderboard]=useState({skill:0,skillsParameters:0,type:"WR",country:""});
     //indicates parameters relative to the current done searched
     const [searchedLeaderboard,setSearchedLeaderboard]=useState({skill:0,skillsParameters:0,type:"WR",country:""});
+
+    //indicates parameters selected for the search
+    const [selectedRanking,setSelectedRanking]=useState({type:"WR",country:""});
+    //indicates parameters relative to the current done searched
+    const [searchedRanking,setSearchedRanking]=useState({type:"WR",country:""});
 
     /*leaderboard composed this way:
     {skill:
@@ -29,6 +34,8 @@ const Leaderboard=(props)=>{
     const [leaderboardUsers,setLeaderboardUsers]=useState([]);
     const [isLoading,setIsLoading]=useState(true);
 
+    const [ranking,setRanking]=useState({});
+
     const countriesData=countries;
     countriesData.sort(function(a, b) {
         return a.name > b.name ? 1 : -1;
@@ -39,9 +46,14 @@ const Leaderboard=(props)=>{
             const [response,userData]=await getUserData(props.user.uid);
 
             if(response){
+                //store selected country for both ranking and leaderboard
                 const selectedLeaderboardCopy=structuredClone(selectedLeaderboard);
+                const selectedRankingCopy=structuredClone(selectedRanking);
                 selectedLeaderboardCopy.country=userData.country;
+                selectedRankingCopy.country=userData.country;
+                setSelectedRanking(selectedRankingCopy);
 
+                //get leaderboard with selected parameters
                 await getLeaderboard(selectedLeaderboardCopy,{...userData,id:props.user.uid});
                 setSelectedLeaderboard(selectedLeaderboardCopy);
                 setIsLoading(false);
@@ -145,6 +157,43 @@ const Leaderboard=(props)=>{
         }
     }
 
+    const getRanking=async()=>{
+        const rankingCopy=structuredClone(ranking);
+        const leaderboardUsersCopy=structuredClone(leaderboardUsers);
+
+        //if the selected ranking has never been fetched, fetch it
+        if(rankingCopy[selectedRanking.type]==undefined || (selectedRanking.type=="NR" && rankingCopy[selectedRanking.type][selectedRanking.country]==undefined)){
+            const [response,rankingLeaderboard]=(selectedRanking.type=="WR")?await getRankingPointsLeaderboard(20):await getRankingPointsLeaderboard(20,null,selectedRanking.country);
+
+            if(response){
+                //check if there are users never fetched
+                for(const i in rankingLeaderboard){
+                    if(leaderboardUsersCopy.find(u=>u.id==rankingLeaderboard[i].id)==undefined){
+                        leaderboardUsersCopy.push(rankingLeaderboard[i]);
+                    }
+                }
+
+                //store the ranking
+
+                if(rankingCopy[selectedRanking.type]==undefined){
+                    rankingCopy[selectedRanking.type]=(selectedRanking.type=="WR")?[]:{};
+                }
+
+                if(selectedRanking.type=="NR"){
+                    rankingCopy[selectedRanking.type][selectedRanking.country]=rankingLeaderboard;
+                }else{
+                    rankingCopy[selectedRanking.type]=rankingLeaderboard;
+                }
+            }else{
+                console.log(rankingLeaderboard);
+            }
+        }
+
+        setRanking(rankingCopy);
+        setLeaderboardUsers(leaderboardUsersCopy);
+        setSearchedRanking(selectedRanking);
+    }
+
     const changeSelectedSkill=(newSkill)=>{
         const copy=structuredClone(selectedLeaderboard);
         copy.skill=newSkill;
@@ -157,10 +206,22 @@ const Leaderboard=(props)=>{
         setSelectedLeaderboard(copy);
     }
 
+    const changeSelectedRankingType=(newType)=>{
+        const copy=structuredClone(selectedRanking);
+        copy.type=newType;
+        setSelectedRanking(copy);
+    }
+
     const changeSelectedCountry=(newCountry)=>{
         const copy=structuredClone(selectedLeaderboard);
         copy.country=newCountry;
         setSelectedLeaderboard(copy);
+    }
+
+    const changeSelectedRankingCountry=(newCountry)=>{
+        const copy=structuredClone(selectedRanking);
+        copy.country=newCountry;
+        setSelectedRanking(copy);
     }
     
     const changeSelectedSkillParameters=(newParameters)=>{
@@ -169,9 +230,31 @@ const Leaderboard=(props)=>{
         setSelectedLeaderboard(copy);
     }
 
+    const changeType=async (newType)=>{
+        if(newType!=selectedType){
+            setSelectedType(newType);
+            switch(newType){
+                case 0:
+                    await searchLeaderboard();
+                    break;
+                case 1:
+                    await searchRanking();
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
     const searchLeaderboard=async()=>{
         setIsLoading(true);
         await getLeaderboard(selectedLeaderboard);
+        setIsLoading(false);
+    }
+
+    const searchRanking=async()=>{
+        setIsLoading(true);
+        await getRanking();
         setIsLoading(false);
     }
 
@@ -179,12 +262,12 @@ const Leaderboard=(props)=>{
         <Container overflowHideen={true} bg="bg-resultsBg">
             <div className="w-full flex flex-row">
                 <div className="text-white text-lg font-default pl-3 basis-[30%] mt-2"><Link to="/">SKILL CHALLENGE</Link></div>
-                <div className="text-white text-2xl basis-[40%] text-center mt-3">LEADERBOARD</div>
+                <div className="text-white text-2xl basis-[40%] text-center mt-3">{selectedType==0?"LEADERBOARD":"RANKING"}</div>
             </div>
 
             <div className="relative flex flex-row items-center gap-5 bg-tooltipColor rounded-md p-1 px-3">
-                <div className="text-white font-default text-[16px] w-[150px] text-center z-[2] cursor-pointer" onClick={()=>setSelectedType(0)}>LEADERBOARD</div>
-                <div className="text-white font-default text-[16px] w-[150px] text-center z-[2] cursor-pointer" onClick={()=>setSelectedType(1)}>RANKING</div>
+                <div className="text-white font-default text-[16px] w-[150px] text-center z-[2] cursor-pointer" onClick={()=>changeType(0)}>LEADERBOARD</div>
+                <div className="text-white font-default text-[16px] w-[150px] text-center z-[2] cursor-pointer" onClick={()=>changeType(1)}>RANKING</div>
 
                 <div className={"absolute top-[50%] translate-y-[-50%] left-3 h-[70%] bg-mainBlue bg-opacity-40 w-[150px] rounded-md transition-all duration-500 "+((selectedType==0)?"left-3":"left-[182px]")}></div>
             </div>
@@ -241,6 +324,7 @@ const Leaderboard=(props)=>{
                             label="Select Country"
                             labelProps={{className:"text-white"}}
                             containerProps={{className:"!w-full !min-w-full"}}
+                            menuProps={{className:"!max-h-[200px]"}}
                             selected={(element) =>
                             element &&
                             cloneElement(element, {
@@ -293,21 +377,29 @@ const Leaderboard=(props)=>{
 
                             return(
                                 <div className="h-full flex-1 flex flex-col items-center gap-2 bg-tooltipColor rounded-md p-2" key={skillResultParameter}>
-                                    <div className="w-[80%] text-white text-center text-base font-navbar p-1 px-2 bg-mainBlue bg-opacity-40 rounded-md">{prettyPrintParameter(skillResultParameter)}</div>
+                                    <div className="w-full text-white text-center text-base font-navbar p-1 px-2 bg-mainBlue bg-opacity-30 rounded-tl-md rounded-tr-md">{prettyPrintParameter(skillResultParameter)}</div>
                                     {currentLeaderboard.user!=null && 
                                     currentLeaderboard.user.map((user,index)=>{
                                         const value = currentLeaderboard.record[index];
                                         const userData = leaderboardUsers.filter(u=>u.id==user)[0];
 
                                         return(
-                                            <div className="w-full flex flex-row bg-white bg-opacity-20 items-center justify-between p-1 px-3 rounded-md">
-                                                <div className={"text-white text-[14px] h-[20px] leading-[20px] text-center rounded-md px-[6px] "+
-                                                (((index+1)>3)?"bg-white bg-opacity-30":(((index+1)==3)?"bg-yellow-gold bg-opacity-30":((index+1)==2)?"bg-gray-500 bg-opacity-60":"bg-yellow-gold bg-opacity-65"))}>{index+1}</div>
-                                                <div className="flex flex-row gap-4 items-center">
-                                                    <img className="w-[20px] h-[20px] rounded-full" src={userData.profileImage}></img>
-                                                    <div className="w-[150px] text-white text-[15px] font-navbar line-clamp-1">{userData.username}</div>
+                                            <div className="w-full flex flex-row bg-white bg-opacity-20 items-center justify-center gap-2 p-1 px-3 rounded-md" key={userData.username+" "+skillResultParameter}>
+                                                <div className="basis-[22%]">
+                                                    <div className={"w-min text-white text-[14px] h-[20px] leading-[20px] text-center rounded-md px-[6px] "+
+                                                    (((index+1)>3)?"bg-white bg-opacity-30":(((index+1)==3)?"bg-yellow-gold bg-opacity-30":((index+1)==2)?"bg-gray-500 bg-opacity-60":"bg-yellow-gold bg-opacity-65"))}>{index+1}</div>
                                                 </div>
-                                                <div className="text-white text-opacity-80 font-default">{value}</div>
+                                                <div className="basis-[56%] flex flex-row gap-4 items-center">
+                                                    <img className="w-[20px] h-[20px] rounded-full" src={userData.profileImage}></img>
+                                                    <div className="text-white text-[15px] font-navbar line-clamp-1">{userData.username}</div>
+                                                </div>
+                                                <div className="basis-[22%] flex flex-row items-center justify-end gap-2">
+                                                    {index==0 && 
+                                                    <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] rounded-sm bg-yellow-gold bg-opacity-50">
+                                                        {searchedLeaderboard.type}
+                                                    </div>}
+                                                    <div className="text-white text-right text-opacity-80 font-default">{value}</div>
+                                                </div>
                                             </div>
                                         )
                                     })}
@@ -324,6 +416,107 @@ const Leaderboard=(props)=>{
                         }
                     </div>
 
+                </div>
+            }
+
+            {selectedType==1 && //ranking
+                <div className="w-screen !flex-1 flex flex-row py-4 gap-3 pr-3 overflow-hidden">
+                    <div className={(menuHover?"basis-[18%]":"basis-[36px]")+" h-full flex flex-col items-center gap-4 border-r-2 border-white border-opacity-60 p-2 px-3 transition-all duration-300"} onMouseOver={()=>setMenuHover(true)} onMouseLeave={()=>setMenuHover(false)}>
+                        <div className={(menuHover?"w-full":"w-[32px]")+" text-white text-[16px] h-[32px] leading-[32px] rounded-md text-center cursor-pointer "+(selectedRanking.type=="WR"?"bg-mainBlue bg-opacity-30":"bg-white bg-opacity-15")}
+                        onClick={()=>changeSelectedRankingType("WR")}>
+                            {menuHover?"WORLD":"W"}
+                        </div>
+                        <div className={(menuHover?"w-full":"w-[32px]")+" text-white text-[16px] h-[32px] leading-[32px] rounded-md text-center cursor-pointer "+(selectedRanking.type=="NR"?"bg-mainBlue bg-opacity-30":"bg-white bg-opacity-15")}
+                        onClick={()=>changeSelectedRankingType("NR")}>
+                            {menuHover?"NATIONAL":"N"}
+                        </div>
+
+                        {selectedRanking.type=="NR" && menuHover &&
+                        <Select
+                            size="md"
+                            label="Select Country"
+                            labelProps={{className:"text-white"}}
+                            containerProps={{className:"!w-full !min-w-full"}}
+                            menuProps={{className:"!top-[50px] !max-h-[200px]"}}
+                            selected={(element) =>
+                            element &&
+                            cloneElement(element, {
+                                disabled: true,
+                                className:
+                                "flex items-center opacity-100 px-0 gap-2 pointer-events-none text-white text-opacity-70",
+                            })
+                            }
+                            value={selectedRanking.country}
+                            onChange={(value)=>changeSelectedRankingCountry(value)}
+                        >
+                            {countriesData.map(({ name, isoCountryCode, flags }) => (
+                            <Option key={name} value={isoCountryCode} className="flex items-center gap-2">
+                                <img
+                                src={flags.svg}
+                                alt={name}
+                                className="h-5 w-5 rounded-full object-cover"
+                                />
+                                {name}
+                            </Option>
+                            ))}
+                        </Select>}
+
+                        {selectedRanking.type=="NR" && !menuHover && 
+                        <img
+                            src={countriesData.find(c=>c.isoCountryCode==selectedRanking.country).flags.svg}
+                            className="h-5 w-5 rounded-full object-cover"
+                        />}
+
+                        <div className="w-full h-[2px] bg-white bg-opacity-70 mt-auto"></div>
+
+                        <div className={
+                            (menuHover?"w-full":"w-[36px] py-2")+
+                            " flex flex-row items-center justify-center gap-3 p-1 px-2 rounded-md overflow-hidden cursor-pointer bg-mainBlue"}
+                        onClick={()=>searchRanking()}>
+                            <i className={"fi fi-rr-search text-white text-[20px] leading-[0]"}></i>
+                            {menuHover && <div className="text-white font-default line-clamp-1">SEARCH</div>}
+                        </div>
+                    </div>
+
+                    <div className="relative w-[450px] ml-[calc(50%-225px-60px)] flex flex-col gap-2 items-center bg-tooltipColor p-3 rounded-md">
+                        {!isLoading && <>
+                            <div className="w-full text-white text-center text-base font-navbar p-1 px-2 bg-mainBlue bg-opacity-30 rounded-tl-md rounded-tr-md">{searchedRanking.type=="WR"?"World Ranking":(countries.find(c=>c.isoCountryCode==searchedRanking.country).name+" Ranking")}</div>
+                            {(
+                                (searchedRanking.type=="WR")?
+                                ranking[searchedRanking.type]:  //if type="WR", map ranking[WR]
+                                ranking[searchedRanking.type][searchedRanking.country]  //if type="NR", map ranking[NR][country]
+                            ).map((user,index)=>{
+
+                                return(
+                                    <div className="w-full flex flex-row bg-white bg-opacity-20 items-center gap-2 p-1 px-3 rounded-md" key={user.user}>
+                                        <div className="basis-[20%]">
+                                            <div className={"w-min text-white text-[14px] h-[20px] leading-[20px] text-center rounded-md px-[6px] "+
+                                            (((index+1)>3)?"bg-white bg-opacity-30":(((index+1)==3)?"bg-yellow-gold bg-opacity-30":((index+1)==2)?"bg-gray-500 bg-opacity-60":"bg-yellow-gold bg-opacity-65"))}>{index+1}</div>
+                                        </div>
+                                        <div className="basis-[60%] flex flex-row gap-4 items-center">
+                                            <img className="w-[20px] h-[20px] rounded-full" src={user.profileImage}></img>
+                                            <div className="text-white text-[15px] font-navbar line-clamp-1">{user.user}</div>
+                                        </div>
+                                        <div className="basis-[20%] flex flex-row items-center justify-end">
+                                            <div className="w-[60px] h-[22px] px-2 flex flex-row gap-1 items-center text-white bg-mainBlue bg-opacity-60 rounded-md">
+                                                <i className="fi fi-sr-bahai text-blueOverBg text-[9px] p-0"></i>
+                                                <div className="text-[12px]">{user.rankingPoints}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                            {(searchedRanking.type=="WR")?
+                            (ranking[searchedRanking.type].length==0 &&<div className="text-white text-opacity-70">NO RESULTS FOUND</div>):
+                            (ranking[searchedRanking.type][searchedRanking.country].length==0 &&<div className="text-white text-opacity-70">NO RESULTS FOUND</div>)
+                            }
+                            </>
+                        }
+
+                        {isLoading &&
+                            <i className="fi fi-tr-loading absolute top-[50%] tanslate-y-[-50%] text-[40px] text-white leading-[0] origin-center animate-rotation"></i>
+                        }
+                    </div>
                 </div>
             }
 
