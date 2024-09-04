@@ -71,7 +71,7 @@ function parseJwt (token) {
 const getCountryByIp=async ()=>{
     const req = await fetch("https://ipapi.co/json/");
     const data = await req.json();
-    return data.country_name;
+    return data.country;
 }
 
 const prettyPrintDate=(date)=>{

@@ -2,13 +2,12 @@ import { cloneElement, useEffect, useRef, useState } from "react";
 import Container from "../components/Container";
 import Navbar from "../components/Navbar";
 import Loading from "../components/Loading";
-import { useCountries } from "use-react-countries";
 import { deleteAccount, getAllUserGames, getSkillLeaderboard, getUserData, signOutWithGoogle, updateUserCountry, updateUserUsername } from "../firebase";
 import UserLevel from "../components/UserLevel";
 import Notice from "../components/Notice";
 import { useNavigate } from "react-router-dom";
 import { Option, Select } from "@material-tailwind/react";
-import { lineChartColors, skills } from "../assets/data";
+import { countries, lineChartColors, skills } from "../assets/data";
 import { CartesianGrid, Legend, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
 import { numberMod, prettyPrintDate, prettyPrintParameter, TooltipChartCustom } from "../utility.jsx";
 
@@ -37,8 +36,8 @@ const Profile=(props)=>{
 
     const noticeRef=useRef();
     const navigate=useNavigate();
-    const {countries}=useCountries();
-    countries.sort(function(a, b) {
+    const countriesData=countries;
+    countriesData.sort(function(a, b) {
         return a.name > b.name ? 1 : -1;
     });
 
@@ -305,8 +304,8 @@ const Profile=(props)=>{
                         </div>}
                         
                         <div className="flex flex-row gap-3 items-center">
-                            <img src={countries.filter(c=>c.name==userData.country)[0].flags.svg} className="h-[30px] w-[30px] rounded-full object-cover border-2 border-mainBlue"/>
-                            <div className="text-white text-sm font-navbar">{userData.country.toUpperCase()}</div>
+                            <img src={countriesData.find(c=>c.isoCountryCode==userData.country).flags.svg} className="h-[30px] w-[30px] rounded-full object-cover border-2 border-mainBlue"/>
+                            <div className="text-white text-sm font-navbar">{countriesData.find(c=>c.isoCountryCode==userData.country).name.toUpperCase()}</div>
                         </div>
 
                         {showCountryChange && 
@@ -327,8 +326,8 @@ const Profile=(props)=>{
                             value={newCountry}
                             onChange={(value)=>setNewCountry(value)}
                         >
-                            {countries.map(({ name, flags }) => (
-                            <Option key={name} value={name} className="flex items-center gap-2">
+                            {countriesData.map(({ name, isoCountryCode, flags }) => (
+                            <Option key={name} value={isoCountryCode} className="flex items-center gap-2">
                                 <img
                                 src={flags.svg}
                                 alt={name}

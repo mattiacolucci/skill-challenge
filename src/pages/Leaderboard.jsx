@@ -1,9 +1,8 @@
 import { cloneElement, useEffect, useState } from "react";
 import Container from "../components/Container"
-import { skills } from "../assets/data";
+import { countries, skills } from "../assets/data";
 import { getSkillLeaderboard, getUserData } from "../firebase";
 import { prettyPrintParameter } from "../utility";
-import { useCountries } from "use-react-countries";
 import { Option, Select } from "@material-tailwind/react";
 import { Link } from "react-router-dom";
 
@@ -30,8 +29,8 @@ const Leaderboard=(props)=>{
     const [leaderboardUsers,setLeaderboardUsers]=useState([]);
     const [isLoading,setIsLoading]=useState(true);
 
-    const {countries}=useCountries();
-    countries.sort(function(a, b) {
+    const countriesData=countries;
+    countriesData.sort(function(a, b) {
         return a.name > b.name ? 1 : -1;
     });
 
@@ -100,9 +99,11 @@ const Leaderboard=(props)=>{
                     if(leaderboardDB[key][key2].user!=null){
                         for(const i in leaderboardDB[key][key2].user){
                             //if we have not already fetched this used data, fetch it
-                            if(!leaderboardUsersCopy.find(e=>e.id==leaderboardDB[key][key2].user[i])){
-                                const user=await getUserData(leaderboardDB[key][key2].user[i]);
-                                leaderboardUsersCopy.push({...user,id:leaderboardDB[key][key2].user[i]});
+                            if(leaderboardUsersCopy.find(e=>e.id==leaderboardDB[key][key2].user[i])==undefined){
+                                const [resp,user]=await getUserData(leaderboardDB[key][key2].user[i]);
+                                if(resp){
+                                    leaderboardUsersCopy.push({...user,id:leaderboardDB[key][key2].user[i]});
+                                }
                             }
                         }
                     }
@@ -251,8 +252,8 @@ const Leaderboard=(props)=>{
                             value={selectedLeaderboard.country}
                             onChange={(value)=>changeSelectedCountry(value)}
                         >
-                            {countries.map(({ name, flags }) => (
-                            <Option key={name} value={name} className="flex items-center gap-2">
+                            {countriesData.map(({ name, isoCountryCode, flags }) => (
+                            <Option key={name} value={isoCountryCode} className="flex items-center gap-2">
                                 <img
                                 src={flags.svg}
                                 alt={name}
@@ -265,7 +266,7 @@ const Leaderboard=(props)=>{
 
                         {selectedLeaderboard.type=="NR" && !menuHover && 
                         <img
-                            src={countries.filter(c=>c.name==selectedLeaderboard.country)[0].flags.svg}
+                            src={countriesData.find(c=>c.isoCountryCode==selectedLeaderboard.country).flags.svg}
                             className="h-5 w-5 rounded-full object-cover"
                         />}
 
@@ -301,12 +302,12 @@ const Leaderboard=(props)=>{
                                         return(
                                             <div className="w-full flex flex-row bg-white bg-opacity-20 items-center justify-between p-1 px-3 rounded-md">
                                                 <div className={"text-white text-[14px] h-[20px] leading-[20px] text-center rounded-md px-[6px] "+
-                                                (((index+1)>3)?"bg-white bg-opacity-30":(((index+1)==3)?"bg-yellow-gold bg-opacity-30":((index+1)==2)?"bg-gray-700 bg-opacity-50":"bg-yellow-gold bg-opacity-65"))}>{index+1}</div>
+                                                (((index+1)>3)?"bg-white bg-opacity-30":(((index+1)==3)?"bg-yellow-gold bg-opacity-30":((index+1)==2)?"bg-gray-500 bg-opacity-60":"bg-yellow-gold bg-opacity-65"))}>{index+1}</div>
                                                 <div className="flex flex-row gap-4 items-center">
                                                     <img className="w-[20px] h-[20px] rounded-full" src={userData.profileImage}></img>
-                                                    <div className="text-white font-navbar">{userData.username}</div>
+                                                    <div className="w-[150px] text-white text-[15px] font-navbar line-clamp-1">{userData.username}</div>
                                                 </div>
-                                                <div className="text-white text-opacity-70 font-default">{value}</div>
+                                                <div className="text-white text-opacity-80 font-default">{value}</div>
                                             </div>
                                         )
                                     })}

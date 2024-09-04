@@ -25,8 +25,7 @@
     "react-dom": "^18.3.1",
     "react-firebase-hooks": "^5.1.1",
     "react-router-dom": "^6.26.0",
-    "recharts": "^2.12.7",
-    "use-react-countries": "^2.0.1"
+    "recharts": "^2.12.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.8.0",

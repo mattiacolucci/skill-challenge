@@ -19,9 +19,9 @@ const Login = () => {
             noticeRef.current.triggerNotice("Welcome "+googleResponse.user.displayName+"!",()=>navigate("/"));
         }else{
             //if user does not exists, get country by the ip and add it to the db
-            const countryName=await getCountryByIp();
+            var country=await getCountryByIp();
 
-            const [userCreated,message]=await createUserAccount(countryName);
+            const [userCreated,message]=await createUserAccount(country);
 
             if(userCreated){
                 noticeRef.current.triggerNotice("Welcome "+googleResponse.user.displayName+"!",()=>navigate("/"));
