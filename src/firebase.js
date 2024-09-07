@@ -1,9 +1,9 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { addDoc, collection, count, deleteDoc, doc, DocumentSnapshot, getDoc, getDocs, getFirestore, limit, orderBy, query, QuerySnapshot, runTransaction, setDoc, updateDoc, where } from "firebase/firestore";
+import { addDoc, collection, count, deleteDoc, doc, DocumentSnapshot, FieldPath, getCountFromServer, getDoc, getDocs, getFirestore, limit, orderBy, query, QuerySnapshot, runTransaction, setDoc, updateDoc, where } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { skills } from "./assets/data";
-import { calculateAvgAccumulately, calculateEstimatedAvgPerformanceBasedOnRankingPoints, filterUserLeaderboard, prettyPrintParameter } from "./utility";
+import { calculateAvgAccumulately, calculateEstimatedAvgPerformanceBasedOnRankingPoints, filterUserLeaderboard, prettyPrintParameter, skillParametersJoinPrint } from "./utility";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -89,109 +89,36 @@ const getUserData = async (uid)=>{
     }
 }
 
-//get skill leaderbord. Get best games for each skill parameter in the world and in the user's country. Funrthermore, get 
-//user's personal best games according to each skill parameter
-//type parameter indicates if I want WR, NR and PB leaderboards (all) or only WR or NR leaderboard
-const getSkillLeaderboard=async (uidUser, skill, skillParameters, country, limitResults=1, type="all")=>{
-    var records={};
-
+//get skill leaderbord. Get best games for each skill parameter in the world and in the user's country.
+//type parameter indicates if I want WR and NR leaderboards (all) or only WR or NR leaderboard
+const getSkillLeaderboard=async (skill, skillParameters, country, limitResults=1, type="all")=>{
+    var records={"WR":{},"NR":{}};
     try{
-        switch(skill){
-            case 0:  //FAST TYPING SKILL
-                //get world records only if type is "all" or "WR"
-                const totTimeWRQuery=(type=="all" || type=="WR")?
-                await getDocs(
-                    query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
-                    where("skill","==",skills[0].title),orderBy("totTime"),limit(limitResults))
-                ):{docs:[]};
-                const avgTimeWRQuery=(type=="all" || type=="WR")?
-                await getDocs(
-                    query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
-                    where("skill","==",skills[0].title),orderBy("avgTime"),limit(limitResults))
-                ):{docs:[]};
-                const fastestWordWRQuery=(type=="all" || type=="WR")?
-                await getDocs(
-                    query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
-                    where("skill","==",skills[0].title),orderBy("fastestWord"),limit(limitResults))
-                ):{docs:[]};
+        //for each record parameter of the skill
+        for(const r in skills[skill].skillResultsParameters){
+            const resultParameter=skills[skill].skillResultsParameters[r];
 
-                //take only best game per user
-                const totTimeWR=filterUserLeaderboard(totTimeWRQuery.docs);
-                const avgTimeWR=filterUserLeaderboard(avgTimeWRQuery.docs);
-                const fastestWordWR=filterUserLeaderboard(fastestWordWRQuery.docs);
+            //get the WR or NR if selected
+            var WR=(type=="all" || type=="WR")?
+            await getDocs(
+                query(collection(db,"games"),where("skillParameters","==",skillParametersJoinPrint(skills[skill].skillParametersPossibleValues[skillParameters])),
+                where("skill","==",skills[0].title),orderBy(resultParameter),limit(limitResults))
+            ):{docs:[]};
 
-                //get national records only if type is "all" or "NR"
-                const nationalUsers=await getDocs(query(collection(db,"users"),where("country","==",country)));
-                var totTimeNRQuery, avgTimeNRQuery, fastestWordNRQuery;
-                if(!nationalUsers.empty){  //if national users exists get national records
+            var NR=(type=="all" || type=="NR")?
+            await getDocs(
+                query(collection(db,"games"),where("skillParameters","==",skillParametersJoinPrint(skills[skill].skillParametersPossibleValues[skillParameters])),
+                where("skill","==",skills[0].title),where("userCountry","==",country),orderBy(resultParameter),limit(limitResults))
+            ):{docs:[]};
 
-                    const nationalUsersIds=nationalUsers.docs.map(usr=>usr.id);
+            //filter users
+            WR=filterUserLeaderboard(WR.docs);
+            NR=filterUserLeaderboard(NR.docs);
 
-                    totTimeNRQuery=(type=="all" || type=="NR")?
-                    await getDocs(
-                        query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
-                        where("skill","==",skills[0].title),where("user","in",nationalUsersIds),orderBy("totTime"),limit(limitResults))
-                    ):{docs:[]};
-                    avgTimeNRQuery=(type=="all" || type=="NR")?
-                    await getDocs(
-                        query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
-                        where("skill","==",skills[0].title),where("user","in",nationalUsersIds),orderBy("avgTime"),limit(limitResults))
-                    ):{docs:[]};
-                    fastestWordNRQuery=(type=="all" || type=="NR")?
-                    await getDocs(
-                        query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
-                        where("skill","==",skills[0].title),where("user","in",nationalUsersIds),orderBy("fastestWord"),limit(limitResults))
-                    ):{docs:[]};
-                }else{  //there is no national record in this case
-                    totTimeNRQuery=[];
-                    avgTimeNRQuery=[];
-                    fastestWordNRQuery=[];
-                }
-
-                //take only best game per user
-                const totTimeNR=(totTimeNRQuery!=[])?filterUserLeaderboard(totTimeNRQuery.docs):[];
-                const avgTimeNR=(avgTimeNRQuery!=[])?filterUserLeaderboard(avgTimeNRQuery.docs):[];
-                const fastestWordNR=(fastestWordNRQuery!=[])?filterUserLeaderboard(fastestWordNRQuery.docs):[];
-
-                //get personal bests
-                const totTimePB=(type=="all")?
-                await getDocs(
-                    query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
-                    where("skill","==",skills[0].title),where("user","==",uidUser),orderBy("totTime"),limit(limitResults))
-                ):{empty:true};
-                const avgTimePB=(type=="all")?
-                await getDocs(
-                    query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
-                    where("skill","==",skills[0].title),where("user","==",uidUser),orderBy("avgTime"),limit(limitResults))
-                ):{empty:true};
-                const fastestWordPB=(type=="all")?
-                await getDocs(
-                    query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
-                    where("skill","==",skills[0].title),where("user","==",uidUser),orderBy("fastestWord"),limit(limitResults))
-                ):{empty:true};
-
-                records={
-                    "WR":{
-                        totTime:(totTimeWR.length!=0)?{record:totTimeWR.map(g=>g.totTime),user:totTimeWR.map(g=>g.user),gameId:totTimeWR.map(g=>g.id)}:{record:null,user:null,gameId:null},
-                        avgTime:(avgTimeWR.length!=0)?{record:avgTimeWR.map(g=>g.avgTime),user:avgTimeWR.map(g=>g.user),gameId:avgTimeWR.map(g=>g.id)}:{record:null,user:null,gameId:null},
-                        fastestWord:(fastestWordWR.length!=0)?{record:fastestWordWR.map(g=>g.fastestWord),user:fastestWordWR.map(g=>g.user),gameId:fastestWordWR.map(g=>g.id)}:{record:null,user:null,gameId:null},
-                    },
-                    "NR":{
-                        totTime:(totTimeNR.length==0)?{record:null,user:null,gameId:null}:{record:totTimeNR.map(g=>g.totTime),user:totTimeNR.map(g=>g.user),gameId:totTimeNR.map(g=>g.id)},
-                        avgTime:(avgTimeNR.length==0)?{record:null,user:null,gameId:null}:{record:avgTimeNR.map(g=>g.avgTime),user:avgTimeNR.map(g=>g.user),gameId:avgTimeNR.map(g=>g.id)},
-                        fastestWord:(fastestWordNR.length==0)?{record:null,user:null,gameId:null}:{record:fastestWordNR.map(g=>g.fastestWord),user:fastestWordNR.map(g=>g.user),gameId:fastestWordNR.map(g=>g.id)},
-                    },
-                    "PB":{
-                        totTime:(!totTimePB.empty)?{record:totTimePB.docs.map(g=>g.data().totTime),user:totTimePB.docs.map(g=>g.data().user),gameId:totTimePB.docs.map(g=>g.id)}:{record:null,user:null,gameId:null},
-                        avgTime:(!avgTimePB.empty)?{record:avgTimePB.docs.map(g=>g.data().avgTime),user:avgTimePB.docs.map(g=>g.data().user),gameId:avgTimePB.docs.map(g=>g.id)}:{record:null,user:null,gameId:null},
-                        fastestWord:(!fastestWordPB.empty)?{record:fastestWordPB.docs.map(g=>g.data().fastestWord),user:fastestWordPB.docs.map(g=>g.data().user),gameId:fastestWordPB.docs.map(g=>g.id)}:{record:null,user:null,gameId:null},
-                    },
-                }
-                
-                break;
-            default:
-                break;
-        }
+            //store leaderboards
+            records["WR"][resultParameter]=(WR.length!=0)?{record:WR.map(g=>g[resultParameter]),user:WR.map(g=>g.user),gameId:WR.map(g=>g.id)}:{record:null,user:null,gameId:null};
+            records["NR"][resultParameter]=(NR.length!=0)?{record:NR.map(g=>g[resultParameter]),user:NR.map(g=>g.user),gameId:NR.map(g=>g.id)}:{record:null,user:null,gameId:null};
+        }    
 
         //if limit is 1, not return array of values but the value itself
         if(limitResults==1 && records!={}){
@@ -207,6 +134,69 @@ const getSkillLeaderboard=async (uidUser, skill, skillParameters, country, limit
         }
 
         return [true,records];
+    }catch(e){
+        return [false,e];
+    }
+}
+
+//function which returns user personal best for the skill, parameters and result parameter selected
+const getUserPersonalBest=async(uidUser, skill, skillParameters, resultParameter)=>{
+    try{
+        const personalBest=await getDocs(
+            query(collection(db,"games"),where("skillParameters","==",skillParametersJoinPrint(skills[skill].skillParametersPossibleValues[skillParameters])),
+            where("skill","==",skills[skill].title),where("user","==",uidUser),orderBy(resultParameter),limit(1))
+        );
+
+        const pb=(!personalBest.empty)?
+        {
+            record:personalBest.docs[0].data()[resultParameter],
+            user:personalBest.docs[0].data().user,
+            gameId:personalBest.docs[0].id
+        }:
+        {record:null,user:null,gameId:null};
+        return [true,pb];
+    }catch(e){
+        return [false,e.message];
+    }
+}
+
+const getUserPositionInLeaderboard=async(uidUser, skill, skillParameters, resultParameter, country=null, type="WR")=>{
+    try{
+        //get user personal best for the selected skill, parameters of it and result parameter
+        const [resp,userPersonalBest]=await getUserPersonalBest(uidUser,skill,skillParameters,resultParameter);
+
+        //if personal best has been retreived successfully
+        if(resp){
+            const personalBest=userPersonalBest.record;
+            //if there is no personal best, return null as position
+            if(personalBest==null){
+                return [true,null];
+            }
+
+            var userLeaderboardPosition;
+
+            if(type=="WR"){
+                //make a query which counts the number of games in the selcted, skill and parameters, which are personal best in result parameter and have result parameter value less than the user personal best
+                userLeaderboardPosition=(await getCountFromServer(query(collection(db,"games"),
+                    where("skill","==",skills[skill].title),
+                    where("skillParameters","==",skillParametersJoinPrint(skills[skill].skillParametersPossibleValues[skillParameters])),
+                    where(resultParameter,"<",personalBest),
+                    where("isPersonalBest."+resultParameter,"==",true)))  //this game is a personal best in result parameter
+                ).data().count;
+            }else if(type=="NR"){
+                userLeaderboardPosition=(await getCountFromServer(query(collection(db,"games"),
+                    where("skill","==",skills[skill].title),
+                    where("skillParameters","==",skillParametersJoinPrint(skills[skill].skillParametersPossibleValues[skillParameters])),
+                    where(resultParameter,"<",personalBest),
+                    where("userCountry","==",country),
+                    where("isPersonalBest."+resultParameter,"==",true)))  //this game is a personal best in result parameter
+                ).data().count;
+            }
+
+            return [true,userLeaderboardPosition+1];
+        }else{
+            return [false,userPersonalBest];
+        }
     }catch(e){
         return [false,e];
     }
@@ -230,16 +220,10 @@ const getLastGamesUser=async(skill,skillParameters,user,numGames)=>{
     try{
         var lastGames=[];
 
-        switch(skill){
-            case 0: //FAST TYPING
-                lastGames=await getDocs(
-                    query(collection(db,"games"),where("numWords","==",skillParameters[0]),where("numChars","==",skillParameters[1]),
-                    where("skill","==",skills[skill].title),where("user","==",user),orderBy("date",'desc'),limit(numGames))
-                );
-                break;
-            default: 
-                break;
-        }
+        lastGames=await getDocs(
+            query(collection(db,"games"),where("skillParameters","==",skillParametersJoinPrint(skillParameters)),
+            where("skill","==",skills[skill].title),where("user","==",user),orderBy("date",'desc'),limit(numGames))
+        );
 
         if(lastGames!=[] && !lastGames.empty){
             return [true,lastGames.docs.map(g=>{return {...g.data(),gameId:g.id}})];
@@ -261,65 +245,75 @@ const getLastGamesUser=async(skill,skillParameters,user,numGames)=>{
  * @param {*} isRecord indicates if the game to store is a record or not. Contains all distances from current records
  * @returns 
  */
-const storeGameResult=async (result,skillIndex,skillParameters,records,isRecord,newLv,newExp,newRankingPoints)=>{
+const storeGameResult=async (result,skillIndex,skillParametersIndex,records,isRecord,newLv,newExp,newRankingPoints)=>{
     try{
         await runTransaction(db,async(transactionDB)=>{
+            const skillParameters=skills[skillIndex].skillParametersPossibleValues[skillParametersIndex];
+
             //get last 5 user games
             const [resp, lastGames]=await getLastGamesUser(skillIndex,skillParameters,auth.currentUser.uid,5);
 
+            //get current user
+            const currUser = await transactionDB.get(doc(db,"users",auth.currentUser.uid));
+            var newUser=currUser.data();
+
+            //json which indicates the records done by the new game
+            var gamePersonalBest={};
+
             if(!resp){
-                return [false,"Error on saving the game"];
+                throw new FirebaseFirestoreException(lastGames,
+                    FirebaseFirestoreException.Code.ABORTED);
             }
 
             //get the id of the game played less recently
             const lessRecentGame=lastGames.at(-1);
 
-            //get ids of games which are current PB, NR and WR
-            //and get ids of games which was PB, NR and WR before the currect game was played
-            var recordIds=[]
+            //var which indicates new updates to do to old personal bests in case this game is a new personal best
+            var updatePastRecords={};
+
             for (const recordType in records){
                 for(const recordParameter in records[recordType]){
-                    //if a record have been set before, get game id of the record
-                    if(records[recordType][recordParameter].gameId!=null){
-                        //get record game id
-                        recordIds.push(records[recordType][recordParameter].gameId);
-                    }
+                    //indicates that the new game is not a personal best in the record parameter
+                    //if it is, next if will be set to true.
+                    gamePersonalBest[recordParameter]=false;
 
                     //check if this record had been surpassed by the current game to store
                     if(isRecord[recordType][recordParameter]<0 || isRecord[recordType][recordParameter]==null){  //if the current game to store is a new record for recordParameter
-
+                        //indicates that the new game is a personal best in the record parameter
+                        gamePersonalBest[recordParameter]=true;
+                        
                         //store in the user profile that he is done a new record. This is done only if the new record is not a PB
                         if(recordType!="PB"){
-                            await runTransaction(db,async(transaction)=>{
-                                const currUser = await transaction.get(doc(db,"users",auth.currentUser.uid));
+                            if(newUser.records[result.skill]==undefined){
+                                newUser.records[result.skill]=[];
+                            }
 
-                                const userSkillPastRecords=(currUser.data().records[result.skill]!=undefined ? currUser.data().records[result.skill] : []);
+                            newUser.records[result.skill].push({
+                                recordType:recordType, recordParameter:recordParameter,
+                                skillParameters:skillParameters.map((p,index)=>{return {[skills[skillIndex].skillParametersLongName[index]]:p}}),
+                                value: result[recordParameter], date:new Date()
+                            });
+                        }
 
-                                transaction.update(doc(db,"users",auth.currentUser.uid),{
-                                    records:{...currUser.data().records,[result.skill]:[
-                                        ...userSkillPastRecords,
-                                        {
-                                            recordType:recordType, recordParameter:recordParameter,
-                                            skillParameters:skillParameters.map((p,index)=>{return {[skills[skillIndex].skillParametersLongName[index]]:p}}),
-                                            value: result[recordParameter], date:new Date()
-                                        }
-                                    ]}
-                                })
-                            })
+                        //if the past record was owned by the user itself, set that it is no more its personal best
+                        if(records[recordType][recordParameter].user==auth.currentUser.uid){
+                            if(updatePastRecords[records[recordType][recordParameter].gameId]==undefined){
+                                updatePastRecords[records[recordType][recordParameter].gameId]={isPersonalBest:{}};
+                            }
+
+                            updatePastRecords[records[recordType][recordParameter].gameId].isPersonalBest[recordParameter] = false;
                         }
                     }
                 }
             }
 
-            //get user data
-            const currUser = await transactionDB.get(doc(db,"users",auth.currentUser.uid));
-            var newUser=currUser.data();
+            //update past records, setting them personal bests to false, if there are any
+            for(const gameId in Object.keys(updatePastRecords)){
+                transactionDB.update(doc(db,"games",gameId,updatePastRecords[gameId]));
+            }
 
-            //remouve duplicates
-            recordIds=[...new Set(recordIds)];
-
-            //check if the less recent game is the actual personal best of the user or is a national or world record
-            if(lessRecentGame!=undefined && !recordIds.includes(lessRecentGame.gameId) && lastGames.length>4){  //if the less recent game is not a record and if the user played at least 5 games, i can delete it since it is not more a useful game
+            //if the less recent game is not a personal best and if the user played at least 5 games, i can delete it since it is not more a useful game
+            if(lessRecentGame!=undefined && !Object.values(lessRecentGame.isPersonalBest).includes(true) && lastGames.length>4){
                 transactionDB.delete(doc(db,"games",lessRecentGame.gameId));
             }
 
@@ -352,15 +346,16 @@ const storeGameResult=async (result,skillIndex,skillParameters,records,isRecord,
                 newUser.avgPerformances[result.skill][avgPerformanceSkillParametersKey].numGames=newUser.avgPerformances[result.skill][avgPerformanceSkillParametersKey].numGames+1;
             }
 
+            //update user profile
             transactionDB.update(doc(db,"users",auth.currentUser.uid),newUser);
 
             //save the current game
-            await addDoc(collection(db,"games"),result);
+            await addDoc(collection(db,"games"),{...result,isPersonalBest:gamePersonalBest,userCountry:newUser.country});
         });
 
         return [true,"Success"];
     }catch(e){
-        return [false,e.message];
+        return [false,e];
     }
 }
 
@@ -493,6 +488,6 @@ const getRankingPointsLeaderboard=async(limitResults,rankingPointsLimit=null,cou
 }
 
 export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillLeaderboard,
-    storeGameResult,updateUserCountry,updateUserUsername,getAllUserGames,deleteAccount,
-    calculateNewRankingPoints, getRankingPointsLeaderboard
+    getUserPersonalBest,getUserPositionInLeaderboard,storeGameResult,updateUserCountry,updateUserUsername,getAllUserGames,
+    deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard
 };

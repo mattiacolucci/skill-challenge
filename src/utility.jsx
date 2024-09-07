@@ -162,5 +162,10 @@ const filterUserLeaderboard=(array)=>{
     return arrayFiltered;
 }
 
+const skillParametersJoinPrint=(skillParameters)=>{
+    return skillParameters.join("-");
+}
+
 export {calculateMaxValueExpByLv, calculateEarnedExpSkill, parseJwt, getCountryByIp, TooltipChartCustom, prettyPrintDate, 
-    prettyPrintParameter, numberMod, calculateAvgAccumulately, calculateEstimatedAvgPerformanceBasedOnRankingPoints,filterUserLeaderboard};
+    prettyPrintParameter, numberMod, calculateAvgAccumulately, calculateEstimatedAvgPerformanceBasedOnRankingPoints,
+    filterUserLeaderboard, skillParametersJoinPrint};

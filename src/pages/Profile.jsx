@@ -2,14 +2,14 @@ import { cloneElement, useEffect, useRef, useState } from "react";
 import Container from "../components/Container";
 import Navbar from "../components/Navbar";
 import Loading from "../components/Loading";
-import { deleteAccount, getAllUserGames, getSkillLeaderboard, getUserData, signOutWithGoogle, updateUserCountry, updateUserUsername } from "../firebase";
+import { deleteAccount, getAllUserGames, getSkillLeaderboard, getUserData, getUserPersonalBest, getUserPositionInLeaderboard, signOutWithGoogle, updateUserCountry, updateUserUsername } from "../firebase";
 import UserLevel from "../components/UserLevel";
 import Notice from "../components/Notice";
 import { useNavigate } from "react-router-dom";
 import { Option, Select } from "@material-tailwind/react";
 import { countries, lineChartColors, skills } from "../assets/data";
 import { CartesianGrid, Legend, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
-import { numberMod, prettyPrintDate, prettyPrintParameter, TooltipChartCustom } from "../utility.jsx";
+import { numberMod, prettyPrintDate, prettyPrintParameter, skillParametersJoinPrint, TooltipChartCustom } from "../utility.jsx";
 
 const Profile=(props)=>{
     const [isLoading,setIsLoading]=useState(true);
@@ -53,11 +53,15 @@ const Profile=(props)=>{
                     setNewCountry(usrData.country);
                     setNewUsername(usrData.username);
 
+                    setIsLoadingPosition(true);
+
                     //calculate user position based on default skill and parameters selected
-                    calculateUserPosition(usrData);
+                    await calculateUserPosition(usrData);
 
                     //filter last games based on selected default skill and parameters
                     filterGames(games);
+
+                    setIsLoadingPosition(false);
                 }else{
                     console.log(games);
                 }
@@ -113,7 +117,6 @@ const Profile=(props)=>{
         for(var i=0;i<games.length;i++){
             var addGame=true;
             const selectedSkillTitle=skills[lastGamesSelectedSkill].title;
-            const numberOfSelectedSkillsParameters=skills[lastGamesSelectedSkill].skillParameters.length;
 
             //if the game is relative to the non selected skill, do not add it to filtered games
             if(games[i].skill!=selectedSkillTitle){
@@ -121,16 +124,11 @@ const Profile=(props)=>{
                 continue;
             }
 
-            //for each skill parameter
-            for(var j=0;j<numberOfSelectedSkillsParameters;j++){
-                const selectedSkillsParameters=skills[lastGamesSelectedSkill].skillParametersPossibleValues[lastGamesSelectedParameters];
-                const JthParameterName=skills[lastGamesSelectedSkill].skillParameters[j];
-
-                //if the skill parameter of the gameis different from the selected one, do not add it to the filtered games
-                if(games[i][JthParameterName]!=selectedSkillsParameters[j]){
-                    addGame=false;
-                    continue;
-                }
+            //if the skill parameter of the gameis different from the selected one, do not add it to the filtered games
+            const selectedSkillsParameters=skills[lastGamesSelectedSkill].skillParametersPossibleValues[lastGamesSelectedParameters];
+            if(games[i].skillParameters!=skillParametersJoinPrint(selectedSkillsParameters)){
+                addGame=false;
+                continue;
             }
 
             if(addGame){
@@ -172,67 +170,64 @@ const Profile=(props)=>{
         setFilteredPersonalBests(personalBests);
     }
 
-    const calculateUserPosition=(usrData=userData)=>{
+    const calculateUserPosition=async(usrData=userData)=>{
         setIsLoadingPosition(true);
 
         //if I have not yet calculate user position for selected skill and parameters
         if(userPosition[lastGamesSelectedSkill]==undefined || userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters]==undefined){
-            //get leaderboard with top 1000 games done in the selected skill and selected parameters
-            getSkillLeaderboard(
-                props.user.uid,lastGamesSelectedSkill,
-                skills[lastGamesSelectedSkill].skillParametersPossibleValues[lastGamesSelectedParameters],
-                usrData.country,1000
-            ).then(([resp,leaderboardSkill])=>{
-                var userPositionLeaderboard={"WR":{},"NR":{}};
+            var userPositionCopy=structuredClone(userPosition);
 
-                if(resp){
-                    //get only users of games read from the db
-                    const resultsParameters=skills[lastGamesSelectedSkill].skillResultsParameters;
+            for(const r in skills[lastGamesSelectedSkill].skillResultsParameters){
+                const resultParameter=skills[lastGamesSelectedSkill].skillResultsParameters[r];
 
-                    for(const i in resultsParameters){
-                        const param=resultsParameters[i];
+                //get user World position for selected skill and parameters and for relative result parameter
+                const [respW,worldPosition]=await getUserPositionInLeaderboard(props.user.uid,lastGamesSelectedSkill,lastGamesSelectedParameters,resultParameter,null,"WR");
 
-                        userPositionLeaderboard.WR[param]=(leaderboardSkill.WR[param].user!=null)?leaderboardSkill.WR[param].user.indexOf(props.user.uid)+1:-1;
-                        userPositionLeaderboard.NR[param]=(leaderboardSkill.NR[param].user!=null)?leaderboardSkill.NR[param].user.indexOf(props.user.uid)+1:-1;
-                    }
-            
+                if(respW){
+                    //get user national position for selected skill and parameters and for relative result parameter
+                    const [respN,nationalPosition]=await getUserPositionInLeaderboard(props.user.uid,lastGamesSelectedSkill,lastGamesSelectedParameters,resultParameter,usrData.country,"NR");
                     
-                }else{
-                    for(const i in resultsParameters){
-                        userPositionLeaderboard.WR[resultsParameters[i]]=-1;
-                        userPositionLeaderboard.NR[resultsParameters[i]]=-1;
+                    if(respN){
+                        if(userPositionCopy[lastGamesSelectedSkill]==undefined){
+                            userPositionCopy[lastGamesSelectedSkill]={};
+                        }
+
+                        if(userPositionCopy[lastGamesSelectedSkill][lastGamesSelectedParameters]==undefined){
+                            userPositionCopy[lastGamesSelectedSkill][lastGamesSelectedParameters]={WR:{},NR:{}};
+                        }
+
+                        //store positions
+                        userPositionCopy[lastGamesSelectedSkill][lastGamesSelectedParameters].WR[resultParameter]=worldPosition;
+                        userPositionCopy[lastGamesSelectedSkill][lastGamesSelectedParameters].NR[resultParameter]=nationalPosition;
+                    }else{
+                        console.log(nationalPosition);
                     }
+                }else{
+                    console.log(worldPosition);
                 }
+            }
 
-                var copyUserPosition=structuredClone(userPosition);
-
-                //if I have not calculated any user position for the selcted skill
-                if(copyUserPosition[lastGamesSelectedSkill]==undefined){
-                    //set an empty array
-                    copyUserPosition[lastGamesSelectedSkill]=[]
-                }
-                copyUserPosition[lastGamesSelectedSkill][lastGamesSelectedParameters]=userPositionLeaderboard;
-
-                setUserPosition(copyUserPosition);
-
-                //hide loading for user position
-                setIsLoadingPosition(false);
-            });
-        }else{
-            //hide loading for user position
-            setIsLoadingPosition(false);
+            setUserPosition(userPositionCopy);
         }
     }
 
     //recalulate filtered games and user position every time the skill selected changes or selected skill's parameters change
     useEffect(()=>{
-        if(Object.keys(userData).length!=0 && userData.games!=undefined){
-            //recalculate user position in world and national leaderboard
-            calculateUserPosition();
-
-            //recalulate filteredGames
-            filterGames(userData.games);
+        const getData=async()=>{
+            if(Object.keys(userData).length!=0 && userData.games!=undefined){
+                setIsLoadingPosition(true);
+    
+                //recalculate user position in world and national leaderboard
+                await calculateUserPosition();
+    
+                //recalulate filteredGames
+                filterGames(userData.games);
+    
+                setIsLoadingPosition(false);
+            }
         }
+
+        getData();
     },[lastGamesSelectedSkill, lastGamesSelectedParameters])
 
     const goNextSelectedSkill=()=>{
@@ -501,7 +496,7 @@ const Profile=(props)=>{
                                         <div className="w-full flex flex-row items-center justify-center gap-10 mt-1">
                                             <div className="flex flex-col items-center gap-2">
                                                 <div className="text-white text-opacity-75 text-base font-navbar font-semibold p-1 px-[6px] bg-tooltipColor">#&nbsp;
-                                                    {(userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters].WR[param]>0)?
+                                                    {(userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters].WR[param]!=null)?
                                                     userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters].WR[param]:
                                                     "-"}
                                                 </div>
@@ -511,7 +506,7 @@ const Profile=(props)=>{
                                             
                                             <div className="flex flex-col items-center gap-2">
                                                 <div className="text-white text-opacity-75 text-base font-navbar font-semibold p-1 px-[6px] bg-tooltipColor">#&nbsp;
-                                                    {(userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters].NR[param]>0)?
+                                                    {(userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters].NR[param]!=null)?
                                                     userPosition[lastGamesSelectedSkill][lastGamesSelectedParameters].NR[param]:
                                                     "-"}
                                                 </div>

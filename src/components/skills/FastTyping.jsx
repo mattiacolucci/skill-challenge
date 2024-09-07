@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import words_list from "../../assets/words.json";
 import Chronometer from "../Chronometer";
 import { Line, LineChart, XAxis, YAxis } from "recharts";
-import { calculateEarnedExpSkill } from "../../utility.jsx";
+import { calculateEarnedExpSkill, skillParametersJoinPrint } from "../../utility.jsx";
 import UserLevel from "../UserLevel";
 import Loading from "../Loading";
 import { calculateNewRankingPoints, storeGameResult } from "../../firebase";
@@ -39,8 +39,9 @@ const FastTyping=(props)=>{
     const worldBestAvgTime=props.records.WR.avgTime.record;
 
     //params
-    const num_words=props.skillsParameters[0];
-    const num_chars=props.skillsParameters[1];
+    const skillParameters=skills[0].skillParametersPossibleValues[props.skillParameters];
+    const num_words=skillParameters[0];
+    const num_chars=skillParameters[1];
     
     const inputRef=useRef();
     const chronometerRef=useRef();
@@ -228,10 +229,10 @@ const FastTyping=(props)=>{
 
     const goResults=async ()=>{
         //calculate earned exp and new level if it has been reached
-        const [newExp,newLevel,newEarnedExp,newEarnedExpString]=calculateEarnedExpSkill("FAST TYPING",props.skillsParameters,userLv,results,expValue);
+        const [newExp,newLevel,newEarnedExp,newEarnedExpString]=calculateEarnedExpSkill("FAST TYPING",skillParameters,userLv,results,expValue);
 
         //calculate new ranking points
-        const [response,newRankingPoints,rankingPointsString]=await calculateNewRankingPoints(rankingPoints,results[skills[0].skillPerformanceParameter],0,props.skillsParameters);
+        const [response,newRankingPoints,rankingPointsString]=await calculateNewRankingPoints(rankingPoints,results[skills[0].skillPerformanceParameter],0,skillParameters);
 
         if(response){
             //store result on db
@@ -240,8 +241,8 @@ const FastTyping=(props)=>{
             const [resp,message]=await storeGameResult({
                 skill:"FAST TYPING", user:props.user.uid, totTime:parseFloat(results.totalTime.toFixed(3)),
                 avgTime:parseFloat(results.avgTime.toFixed(3)), fastestWord:parseFloat(results.fastestWord.time.toFixed(3)), 
-                date: new Date(),numWords:parseInt(num_words), numChars:parseInt(num_chars)
-            },0,props.skillsParameters,props.records,results.distancesFromRecords,newLevel,newExp,newRankingPoints);
+                date: new Date(), skillParameters:skillParametersJoinPrint(skillParameters)
+            },0,props.skillParameters,props.records,results.distancesFromRecords,newLevel,newExp,newRankingPoints);
 
             if(resp){
                 //go to results screen

@@ -3,7 +3,7 @@ import Container from "../components/Container";
 import Navbar from "../components/Navbar";
 import { skills } from "../assets/data";
 import FastTyping from "../components/skills/FastTyping";
-import { getSkillLeaderboard, getUserData } from "../firebase";
+import { getSkillLeaderboard, getUserData, getUserPersonalBest } from "../firebase";
 import Loading from "../components/Loading";
 
 
@@ -12,7 +12,7 @@ const Play=(props)=>{
     const playCountDownRef=useRef();
     const [selectionState,setSelectionState]=useState(0);
     const [selectedSkill,setSelectedSkill]=useState(-1);
-    const [skillsParameters,setSkillsParameters]=useState([]);
+    const [skillsParameters,setSkillsParameters]=useState(0);
     const [userData,setUserData]=useState({});  //state which contains user profile data and record done in the selected skill
     const [records,setRecords]=useState({});  //state which contains all NR and WR records of the selected skill
     const [isLoading,setIsLoading]=useState(false);
@@ -26,14 +26,11 @@ const Play=(props)=>{
     }
 
     const selectSkill=(value)=>{
-        //set default values for skill's parameters
-        setSkillsParameters(skills[value].skillParametersDefaultValues);
-
         //update selected skill
         setSelectedSkill(value);
     }
 
-    const updateParameter=(index,min,max,value)=>{
+    /*const updateParameter=(index,min,max,value)=>{
         //copy paramets array
         var parametersCopy=[...skillsParameters];
 
@@ -47,7 +44,7 @@ const Play=(props)=>{
         }
         //update state
         setSkillsParameters(parametersCopy);
-    }
+    }*/
 
     //function which fetch user data and records for the selected skill and scroll down the page on the play screen
     const goPlayScreen=async ()=>{
@@ -60,11 +57,22 @@ const Play=(props)=>{
             setUserData({...props.user,lv:data.lv,exp:data.exp,username:data.username,rankingPoints:data.rankingPoints});
 
             //fetch skill leaderboard
-            const [resp,skillRecords] = await getSkillLeaderboard(props.user.uid,selectedSkill,skillsParameters,data.country,1);
-
-            console.log(skillRecords)
+            const [resp,skillRecords] = await getSkillLeaderboard(selectedSkill,skillsParameters,data.country,1);
 
             if(resp){
+                skillRecords.PB={};
+                //fetch user personal bests
+                for(const param in skills[selectedSkill].skillResultsParameters){
+                    const resultParameter=skills[selectedSkill].skillResultsParameters[param];
+                    const [res,personalBest]=await getUserPersonalBest(props.user.uid,selectedSkill,skillsParameters,resultParameter);
+                    if(res){
+                        skillRecords.PB[resultParameter]=personalBest;
+                    }else{
+                        console.log(personalBest);
+                    }
+                }
+
+                console.log(skillRecords)
                 setRecords(skillRecords);
             }else{
                 console.log(data);
@@ -136,27 +144,27 @@ const Play=(props)=>{
                             {skills[selectedSkill].parametersDescription}
                         </div>
 
-                        <div className="w-full flex flex-col gap-4">
-                            {selectedSkill==0 && //parameters for skill 1
-                            <>
-                            <div className="w-[350px] flex flex-row gap-4 items-center">
-                                <div className="text-lg font-navbar font-semibold">Number of words <span className="text-xs">(1-15)</span></div>
-                                <input type="number" className="ml-auto text-base px-3 py-1 border-0 border-b-2 font-navbar border-white outline-none bg-white bg-opacity-30" min={1} max={15}
-                                onChange={(e)=>updateParameter(0,1,15,e.target.value)} value={skillsParameters[0]}/>
-                            </div>
-                            <div className="w-[350px] flex flex-row gap-4 items-center">
-                                <div className="text-lg font-navbar font-semibold">Number of chars per word <span className="text-xs">(2-10)</span></div>
-                                <input type="number" className="ml-auto text-base px-3 py-1 border-0 border-b-2 font-navbar border-white outline-none bg-white bg-opacity-30" min={2} max={10} 
-                                onChange={(e)=>updateParameter(1,2,10,e.target.value)} value={skillsParameters[1]}/>
-                            </div></>}
-
-                            {selectedSkill==1 && //parameters for skill 2
-                            <div className="w-[350px] flex flex-row gap-4 items-center">
-                                <div className="text-lg font-navbar font-semibold">Number of clicks <span className="text-xs">(1-20)</span></div>
-                                <input type="number" className="ml-auto text-base px-3 py-1 border-0 border-b-2 font-navbar border-white outline-none bg-white bg-opacity-30" min={1} max={20}
-                                onChange={(e)=>updateParameter(0,1,20,e.target.value)} value={skillsParameters[0]}/>
-                            </div>
-                            }
+                        <div className="w-full flex flex-row gap-4 flex-wrap">
+                            {skills[selectedSkill].skillParametersPossibleValues.map((skillParams,paramsIndex)=>{
+                                return(
+                                    <div className="flex flex-col items-center" key={"param"+paramsIndex}>
+                                        <div className={"flex flex-row items-center gap-3 p-2 px-3 glass-effect rounded-md cursor-pointer "+(skillsParameters==paramsIndex?"border-2 border-mainBlue":"")} onClick={()=>setSkillsParameters(paramsIndex)}>
+                                            {skillParams.map((p,index)=>{
+                                                return(<>
+                                                    <div className="flex flex-col gap-2 items-center">
+                                                        <div className="text-white text-xs font-navbar">{skills[selectedSkill].skillParametersLongName[index]}</div>
+                                                        <div className="text-white text-xl font-default">{p}</div>
+                                                    </div>
+                                                    {index<(skillParams.length-1) && <div className="bg-white bg-opacity-50 w-[2px] h-[80%]"></div>}
+                                                    </>
+                                                )
+                                            })}    
+                                        </div>
+                                        <div className={"px-2 text-white bg-blue-700 rounded-br-md rounded-bl-md transition-all duration-300 overflow-hidden "+(skillsParameters==paramsIndex?"h-[30px] leading-[30px]":"h-0")}>SELECTED</div> 
+                                    </div>
+                                    
+                                )
+                            })}
                         </div>
                 
                         <div className="w-full flex mt-auto">
@@ -197,7 +205,7 @@ const Play=(props)=>{
                     {/*display the respective game based on the skill selected. A callback to call 
                     when the game skill ends is passed to the game skill component and skills parameters
                     are passed too*/}
-                    {selectedSkill==0 && <FastTyping skillsParameters={skillsParameters} user={userData} records={records}/>}
+                    {selectedSkill==0 && <FastTyping skillParameters={skillsParameters} user={userData} records={records}/>}
                     </>
                 }
 
