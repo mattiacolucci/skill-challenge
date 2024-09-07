@@ -268,9 +268,6 @@ const storeGameResult=async (result,skillIndex,skillParametersIndex,records,isRe
             //get the id of the game played less recently
             const lessRecentGame=lastGames.at(-1);
 
-            //var which indicates new updates to do to old personal bests in case this game is a new personal best
-            var updatePastRecords={};
-
             for (const recordType in records){
                 for(const recordParameter in records[recordType]){
                     //indicates that the new game is not a personal best in the record parameter
@@ -297,19 +294,12 @@ const storeGameResult=async (result,skillIndex,skillParametersIndex,records,isRe
 
                         //if the past record was owned by the user itself, set that it is no more its personal best
                         if(records[recordType][recordParameter].user==auth.currentUser.uid){
-                            if(updatePastRecords[records[recordType][recordParameter].gameId]==undefined){
-                                updatePastRecords[records[recordType][recordParameter].gameId]={isPersonalBest:{}};
-                            }
-
-                            updatePastRecords[records[recordType][recordParameter].gameId].isPersonalBest[recordParameter] = false;
+                            var gameUpdate = {};
+                            gameUpdate[`isPersonalBest.${recordParameter}`] = false;
+                            transactionDB.update(doc(db,"games",records[recordType][recordParameter].gameId),gameUpdate);
                         }
                     }
                 }
-            }
-
-            //update past records, setting them personal bests to false, if there are any
-            for(const gameId in Object.keys(updatePastRecords)){
-                transactionDB.update(doc(db,"games",gameId,updatePastRecords[gameId]));
             }
 
             //if the less recent game is not a personal best and if the user played at least 5 games, i can delete it since it is not more a useful game
