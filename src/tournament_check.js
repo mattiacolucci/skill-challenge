@@ -23,6 +23,8 @@ const db = firestore.getFirestore(app);
 
 const auth = firebaseAuth.getAuth();
 
-firebaseAuth.signInWithEmailAndPassword(auth,  process.env.VITE_APP_FIREBASE_EMAIL,  process.env.VITE_APP_FIREBASE_PASSW).then((u)=>{
-    firestore.setDoc(firestore.doc(db,"users",u.user.uid));
-});
+module.exports=function(){
+    firebaseAuth.signInWithEmailAndPassword(auth,  process.env.VITE_APP_FIREBASE_EMAIL,  process.env.VITE_APP_FIREBASE_PASSW).then((u)=>{
+        firestore.setDoc(firestore.doc(db,"users",u.user.uid));
+    });
+}
