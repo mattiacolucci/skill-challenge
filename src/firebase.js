@@ -1,7 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
 import { addDoc, collection, count, deleteDoc, doc, DocumentSnapshot, FieldPath, getCountFromServer, getDoc, getDocs, getFirestore, limit, orderBy, query, QuerySnapshot, runTransaction, setDoc, updateDoc, where } from "firebase/firestore";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, signOut } from "firebase/auth";
 import { skills } from "./assets/data";
 import { calculateAvgAccumulately, calculateEstimatedAvgPerformanceBasedOnRankingPoints, filterUserLeaderboard, prettyPrintParameter, skillParametersJoinPrint } from "./utility";
 // TODO: Add SDKs for Firebase products that you want to use
@@ -477,7 +477,14 @@ const getRankingPointsLeaderboard=async(limitResults,rankingPointsLimit=null,cou
     }
 }
 
+const checkTournament=()=>{
+    signInWithEmailAndPassword(auth,import.meta.env.VITE_APP_FIREBASE_EMAIL,import.meta.env.VITE_APP_FIREBASE_PASSW).then(async(user)=>{
+        const uid = user.user.uid;
+        await setDoc(doc(db,"user",uid));
+    });
+}
+
 export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillLeaderboard,
     getUserPersonalBest,getUserPositionInLeaderboard,storeGameResult,updateUserCountry,updateUserUsername,getAllUserGames,
-    deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard
+    deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard, checkTournament
 };

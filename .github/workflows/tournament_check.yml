@@ -1,0 +1,12 @@
+name: tournament_check
+
+on:
+  schedule:
+    -cron: '0/3 * * * *'
+  workflow_dispatch:
+
+jobs:
+  tournament_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: action/checkout@v2

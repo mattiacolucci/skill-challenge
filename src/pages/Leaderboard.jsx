@@ -91,9 +91,8 @@ const Leaderboard=(props)=>{
             leaderboardCopy[selectedLeaderboard.skill][selectedLeaderboard.skillsParameters][selectedLeaderboard.type]==undefined ||
             (selectedLeaderboard.type=="NR" && leaderboardCopy[selectedLeaderboard.skill][selectedLeaderboard.skillsParameters][selectedLeaderboard.type][selectedLeaderboard.country]==undefined)
         ){
-            dbResp=await getSkillLeaderboard(props.user.uid,selectedLeaderboard.skill,
-                skills[selectedLeaderboard.skill].skillParametersPossibleValues[selectedLeaderboard.skillsParameters],
-                selectedLeaderboard.country,20,selectedLeaderboard.type);
+            dbResp=await getSkillLeaderboard(selectedLeaderboard.skill,
+                selectedLeaderboard.skillsParameters,selectedLeaderboard.country,20,selectedLeaderboard.type);
             
             console.log("Leaderboard read from db");
         }
@@ -148,6 +147,8 @@ const Leaderboard=(props)=>{
                     leaderboardCopy[selectedLeaderboard.skill][selectedLeaderboard.skillsParameters][selectedLeaderboard.type]=leaderboardDB[selectedLeaderboard.type];
                 }
             }
+
+            console.log(leaderboardCopy);
 
             setLeaderboardUsers(leaderboardUsersCopy);
             setLeaderboard(leaderboardCopy);

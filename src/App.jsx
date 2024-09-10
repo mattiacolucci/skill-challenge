@@ -33,9 +33,9 @@ function App() {
               <Link to="/leaderboard" className='w-full h-[30px] rounded-md text-left hover:bg-white hover:bg-opacity-40 transition-all duration-300 px-4 leading-[30px]'>
                 LEADERBOARD
               </Link>
-              <button className='w-full h-[30px] rounded-md text-left hover:bg-white hover:bg-opacity-40 transition-all duration-300 px-4 leading-[30px]'>
-                MENU 3
-              </button>
+              <Link to="/tournaments" className='w-full h-[30px] rounded-md text-left hover:bg-white hover:bg-opacity-40 transition-all duration-300 px-4 leading-[30px]'>
+                TOURNAMENTS
+              </Link>
             </div>
   
             <div className='h-auto basis-[50%] flex flex-col items-center py-3 rounded-md text-white'>

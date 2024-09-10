@@ -353,7 +353,7 @@ const Profile=(props)=>{
                             <span className="text-xs text-white text-opacity-60 ml-2 font-navbar">({Object.keys(userData.records).map(skill=>userData.records[skill].length).reduce((sum,a)=>sum+a,0)})</span>
                         </div>
 
-                        <div className="h-[150px] px-2 w-[200px] flex flex-col gap-2 items-center overflow-auto pb-3 shadow-[5px_5px_10px_-1px_rgba(29,78,216,0.4)]">
+                        <div className="h-[150px] px-2 w-[200px] flex flex-col gap-2 overflow-auto pb-3 shadow-[5px_5px_10px_-1px_rgba(29,78,216,0.4)]">
                             {Object.keys(userData.records).map((skill)=>{
                                 return(<>
                                     <div className="w-full flex flex-row items-center gap-2 sticky top-0 bg-resultsBg">
@@ -364,7 +364,7 @@ const Profile=(props)=>{
                                             const recordParameterNameWithSpaces=prettyPrintParameter(record.recordParameter);
 
                                             return (
-                                            <div className="flex flex-row items-center gap-2" key={"record"+index} title={skill+" "+record.recordType+" in "+recordParameterNameWithSpaces}>
+                                            <div className="flex flex-row items-center gap-2 ml-2" key={"record"+index} title={skill+" "+record.recordType+" in "+recordParameterNameWithSpaces}>
                                                 <div className={"text-[9px] w-[20px] h-[20px] text-center leading-[20px] "+((record.recordType=="PB")?"bg-blueOverBg bg-opacity-50":((record.recordType=="NR")?"bg-yellow-gold bg-opacity-50":"bg-yellow-gold bg-opacity-65"))}>
                                                     {record.recordType}
                                                 </div>
@@ -409,8 +409,8 @@ const Profile=(props)=>{
                                 <div className="cursor-pointer text-xl select-none transition-all duration-300 hover:scale-125" onClick={()=>(!isLoadingPosition)?goNextSelectedSkillsParameters():""}>⮚</div>
                             </div>
                             
-                            <div className="mt-5">
-                                {filteredGamesData.length!=0 && <LineChart width={300} height={160} data={filteredGamesData} margin={{bottom:10,right:10}} style={{alignSelf:"center"}}>
+                            <div className="mt-5 flex">
+                                {filteredGamesData.length!=0 && !isLoadingPosition && <LineChart width={300} height={160} data={filteredGamesData} margin={{bottom:10,right:10}} style={{alignSelf:"center"}}>
                                     <CartesianGrid strokeDasharray="2" strokeOpacity={0.3}/>
                                     <XAxis minTickGap={10} dataKey="date" type="category" interval={"equidistantPreserveStartEnd"} label={{ value: 'Date', angle: 0, position: 'insideBottomRight', offset:7, fontSize:"12px"}} style={{ fontSize: '12px'}}/>
                                     <YAxis minTickGap={8} domain={[0, 'dataMax + 0.5']} type={"number"} interval={"equidistantPreserveStartEnd"} label={{ value: 'Value', angle: -90, fontSize:"11px", position:'insideBottom', offset:35}} style={{ fontSize: '12px'}}/>
@@ -420,10 +420,15 @@ const Profile=(props)=>{
                                         return <Line type="monotone" dataKey={param} stroke={lineChartColors[index]} strokeWidth={1.5}/>
                                     })}
                                 </LineChart>}
-                                {filteredGamesData.length==0 && <div className="text-white text-opacity-65 mb-10">NO GAMES FOUND</div>}
+                                
+                                {filteredGamesData.length==0 && !isLoadingPosition && <div className="text-white text-opacity-65 mb-10">NO GAMES FOUND</div>}
+                                
+                                {isLoadingPosition &&
+                                    <i className="fi fi-tr-loading text-[30px] text-white leading-[0] origin-center animate-rotation"></i>
+                                }
                             </div>
 
-                            {Object.keys(filteredPersonalBests).length!=0 && <>
+                            {Object.keys(filteredPersonalBests).length!=0 && !isLoadingPosition && <>
                             <div className="text-white text-2xl font-default mt-2">PERSONAL BESTS</div>
 
                             
