@@ -477,14 +477,7 @@ const getRankingPointsLeaderboard=async(limitResults,rankingPointsLimit=null,cou
     }
 }
 
-const checkTournament=()=>{
-    signInWithEmailAndPassword(auth,import.meta.env.VITE_APP_FIREBASE_EMAIL,import.meta.env.VITE_APP_FIREBASE_PASSW).then(async(user)=>{
-        const uid = user.user.uid;
-        await setDoc(doc(db,"user",uid));
-    });
-}
-
 export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillLeaderboard,
     getUserPersonalBest,getUserPositionInLeaderboard,storeGameResult,updateUserCountry,updateUserUsername,getAllUserGames,
-    deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard, checkTournament
+    deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard
 };
