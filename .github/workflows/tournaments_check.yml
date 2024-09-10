@@ -6,7 +6,10 @@ jobs:
   check-tournaments:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with: { ref: main }
+        
       - uses: actions/github-script@v7
         env:
           KEY: ${{ secrets.FIREBASE_KEY }}
