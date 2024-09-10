@@ -1,6 +1,6 @@
 on:
   schedule:
-    - cron: '08 12 * * *'
+    - cron: '11 12 * * *'
 
 jobs:
   check-tournaments:
