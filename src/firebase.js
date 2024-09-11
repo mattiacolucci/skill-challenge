@@ -484,20 +484,23 @@ const getAllOpenTournaments=async(skill)=>{
         if(tournamentsList.empty){
             return [true,[]];
         }else{
-            const tournaments=tournamentsList.docs.map(t=>t.data());
+            const tournaments=tournamentsList.docs.map(t=>{return{...t.data(),id:t.id}});
 
-            //calculate if current user matches the first tournament requisiments
-            const [resp,req]=await checkTournamentRequisiments(tournaments[0].requisiments,tournaments[0].skill);
+            //calculate if current user matches the first tournament requirements
+            const [resp,req]=await checkTournamentRequirements(tournaments[0].requirements,tournaments[0].skill);
 
             if(resp){
-                //set requisiments match array to first tournaments
-                for(const i in tournaments[0].requisiments){
-                    tournaments[0].requisiments[i]={...tournaments[0].requisiments[i],matched:req[i]};
+                //set requirements match array to first tournaments
+                for(const i in tournaments[0].requirements){
+                    tournaments[0].requirements[i]={...tournaments[0].requirements[i],matched:req[i]};
                 }
-                
+
+                //indicates if user matches all requirements
+                tournaments[0].matchesAllrequirements=(tournaments[0].requirements.map(r=>r.matched).find(e=>e==false)==undefined)?true:false;
+
                 return [true,tournaments];
             }else{
-                return [false,"Requisiments Calculation Failed!"];
+                return [false,"requirements Calculation Failed!"];
             }
         }
     }catch(e){
@@ -505,10 +508,21 @@ const getAllOpenTournaments=async(skill)=>{
     }
 }
 
-//function that check if a user matches tournament requisiments
-//as input has the array of requisiments with the relative skill of the tournament
+const subscribeToTournament=async(tournamentId)=>{
+    try{
+        const tournament=(await getDoc(doc(db,"tournaments",tournamentId))).data();
+        await updateDoc(doc(db,"tournaments",tournamentId),{subscribedUsers:[...tournament.subscribedUsers,auth.currentUser.uid]});
+
+        return [true,"Success!"];
+    }catch(e){
+        return [false,e.message];
+    }
+}
+
+//function that check if a user matches tournament requirements
+//as input has the array of requirements with the relative skill of the tournament
 //returns an array of bool which indicates if the requisiment is matched or not
-const checkTournamentRequisiments=async(req,skill)=>{
+const checkTournamentRequirements=async(req,skill)=>{
     try{
         const requisimentMatches=[];
 
@@ -559,5 +573,5 @@ const checkTournamentRequisiments=async(req,skill)=>{
 
 export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillLeaderboard,
     getUserPersonalBest,getUserPositionInLeaderboard,storeGameResult,updateUserCountry,updateUserUsername,getAllUserGames,
-    deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard, getAllOpenTournaments
+    deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard, getAllOpenTournaments, subscribeToTournament
 };
