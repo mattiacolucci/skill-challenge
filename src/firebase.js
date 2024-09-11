@@ -477,14 +477,87 @@ const getRankingPointsLeaderboard=async(limitResults,rankingPointsLimit=null,cou
     }
 }
 
-const checkTournament=()=>{
-    signInWithEmailAndPassword(auth,import.meta.env.VITE_APP_FIREBASE_EMAIL,import.meta.env.VITE_APP_FIREBASE_PASSW).then(async(user)=>{
-        const uid = user.user.uid;
-        await setDoc(doc(db,"user",uid));
-    });
+//function which get all tournaments which are not closed and relative to a certain skill
+const getAllOpenTournaments=async(skill)=>{
+    try{
+        const tournamentsList=await getDocs(query(collection(db,"tournaments"),where("status","in",["open","progress"]),where("skill","==",skills[skill].title)));
+        if(tournamentsList.empty){
+            return [true,[]];
+        }else{
+            const tournaments=tournamentsList.docs.map(t=>t.data());
+
+            //calculate if current user matches the first tournament requisiments
+            const [resp,req]=await checkTournamentRequisiments(tournaments[0].requisiments,tournaments[0].skill);
+
+            if(resp){
+                //set requisiments match array to first tournaments
+                for(const i in tournaments[0].requisiments){
+                    tournaments[0].requisiments[i]={...tournaments[0].requisiments[i],matched:req[i]};
+                }
+                
+                return [true,tournaments];
+            }else{
+                return [false,"Requisiments Calculation Failed!"];
+            }
+        }
+    }catch(e){
+        return [false,e.message];
+    }
+}
+
+//function that check if a user matches tournament requisiments
+//as input has the array of requisiments with the relative skill of the tournament
+//returns an array of bool which indicates if the requisiment is matched or not
+const checkTournamentRequisiments=async(req,skill)=>{
+    try{
+        const requisimentMatches=[];
+
+        for(const i in req){
+            var compareValue, thresholdValue, compareSign;
+
+            thresholdValue=req[i].thresholdValue;
+            compareSign=req[i].compareSign;
+
+            switch(req[i].parameter){
+                case "rankingPoints":   //has a certain number of ranking points
+                    compareValue=(await getDoc(doc(db,"users",auth.currentUser.uid))).data().rankingPoints;
+                    break;
+                case "nationality":  //has a certain nationality
+                    compareValue=(await getDoc(doc(db,"users",auth.currentUser.uid))).data().country;
+                    break;
+                case "worldRecords":  //has a certain number of world records for the tournament skill
+                    compareValue=(await getDoc(doc(db,"users",auth.currentUser.uid))).data().records[skill].filter(r=>r.recordType=="WR").length;
+                    break;
+                case "nationalRecords":  //has a certain number of national records for the tournament skill
+                    compareValue=(await getDoc(doc(db,"users",auth.currentUser.uid))).data().records[skill].filter(r=>r.recordType=="NR").length;
+                    break;
+                default:
+                    break;
+            }
+
+            switch(compareSign){
+                case "==":
+                    requisimentMatches[i]=(compareValue==thresholdValue)?true:false;
+                    break;
+                case "<":
+                    requisimentMatches[i]=(compareValue<=thresholdValue)?true:false;
+                    break;
+                case ">":
+                    requisimentMatches[i]=(compareValue>=thresholdValue)?true:false;
+                    break;
+                default:
+                    requisimentMatches[i]=false;
+                    break;
+            }
+        }
+
+        return [true,requisimentMatches];
+    }catch(e){
+        return [false,e.message];
+    }
 }
 
 export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillLeaderboard,
     getUserPersonalBest,getUserPositionInLeaderboard,storeGameResult,updateUserCountry,updateUserUsername,getAllUserGames,
-    deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard
+    deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard, getAllOpenTournaments
 };

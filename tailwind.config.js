@@ -22,6 +22,7 @@ export default withMT({
         'mainRed':"#dc2626",
         'mainBlue':"#1d4ed8",
         'greenOverBg':"#22c55e",
+        'darkGreen':"#007d21",
         'blueOverBg':"#93c5fd",
         'yellow-gold':"#FEE101",
         'darkBlue':"#1c158f",
@@ -36,6 +37,10 @@ export default withMT({
         },
         'fadeUp':{
           '0%':{translate:"0 150px",opacity:"0"},
+          '100%':{translate:"0 0",opacity:"1"}
+        },
+        'fadeLeft':{
+          '0%':{translate:"-150px 0",opacity:"0"},
           '100%':{translate:"0 0",opacity:"1"}
         },
         'rotation':{
@@ -57,6 +62,7 @@ export default withMT({
       animation: {
         record: 'record 1s 1s ease-in-out forwards',
         fadeUp: 'fadeUp 0.8s ease-in-out forwards',
+        fadeLeft: 'fadeLeft 0.8s ease-in-out forwards',
         notice: 'notice 4s ease-in-out forwards',
         rotation: 'rotation 2s infinite linear',
         deleteAccount: 'deleteAccount 2s infinite linear'
