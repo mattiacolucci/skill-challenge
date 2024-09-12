@@ -477,10 +477,39 @@ const getRankingPointsLeaderboard=async(limitResults,rankingPointsLimit=null,cou
     }
 }
 
+const getUserPositionInRankingPointsLeaderboard=async(user,type="WR")=>{
+    try{
+        var userPosition;
+
+        const userData=await getDoc(doc(db,"users",user));
+
+        if(!userData.exists){
+            return [false,"User do not exists"];
+        }
+
+        if(type=="WR"){
+            //count number of users with ranking pints highest than the user ones
+            userPosition=(await getCountFromServer(query(collection(db,"users"),
+                where("rankingPoints",">",userData.data().rankingPoints)))
+            ).data().count;
+        }else{
+            //count number of users (with the same nationality of the user) with ranking pints highest than the user ones
+            userPosition=(await getCountFromServer(query(collection(db,"users"),
+                where("rankingPoints",">",userData.data().rankingPoints),
+                where("country","==",userData.data().country)))
+            ).data().count;
+        }
+
+        return [true,userPosition+1];
+    }catch(e){
+        return [false,e];
+    }
+}
+
 //function which get all tournaments which are not closed and relative to a certain skill
 const getAllOpenTournaments=async(skill)=>{
     try{
-        const tournamentsList=await getDocs(query(collection(db,"tournaments"),where("status","in",["open","progress"]),where("skill","==",skills[skill].title)));
+        const tournamentsList=await getDocs(query(collection(db,"tournaments"),where("status","in",["open","progress"]),where("skill","==",skills[skill].title),orderBy("creationDate","desc")));
         if(tournamentsList.empty){
             return [true,[]];
         }else{
@@ -500,7 +529,7 @@ const getAllOpenTournaments=async(skill)=>{
 
                 return [true,tournaments];
             }else{
-                return [false,"requirements Calculation Failed!"];
+                return [false,req];
             }
         }
     }catch(e){
@@ -545,6 +574,25 @@ const checkTournamentRequirements=async(req,skill)=>{
                 case "nationalRecords":  //has a certain number of national records for the tournament skill
                     compareValue=(await getDoc(doc(db,"users",auth.currentUser.uid))).data().records[skill].filter(r=>r.recordType=="NR").length;
                     break;
+                case "rankingPointsLeaderboardWorld":  //has a certain position in the world ranking points leaderboard
+                    const [resp,rankingPointsPosition]=await getUserPositionInRankingPointsLeaderboard(auth.currentUser.uid,"WR");
+                    if(resp){
+                        compareValue=rankingPointsPosition;
+                    }else{
+                        return [false,rankingPointsPosition];
+                    }
+                    break;
+                case "rankingPointsLeaderboardNational":  //has a certain position in the national ranking points leaderboard
+                    const [response,rankingPointsPositionNational]=await getUserPositionInRankingPointsLeaderboard(auth.currentUser.uid,"NR");
+                    if(response){
+                        compareValue=rankingPointsPositionNational;
+                    }else{
+                        return [false,rankingPointsPositionNational];
+                    }
+                    break;
+                case "country":
+                    compareValue=(await getDoc(doc(db,"users",auth.currentUser.uid))).data().country;
+                    break;
                 default:
                     break;
             }
@@ -573,5 +621,5 @@ const checkTournamentRequirements=async(req,skill)=>{
 
 export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillLeaderboard,
     getUserPersonalBest,getUserPositionInLeaderboard,storeGameResult,updateUserCountry,updateUserUsername,getAllUserGames,
-    deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard, getAllOpenTournaments, subscribeToTournament
+    deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard, getAllOpenTournaments, subscribeToTournament, checkTournamentRequirements
 };

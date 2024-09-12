@@ -28,7 +28,8 @@ export default withMT({
         'darkBlue':"#1c158f",
         'resultsBg':"#0c0b1f",
         'tooltipColor':"#16153b",
-        'noticeBg':"#3d3c4c"
+        'noticeBg':"#3d3c4c",
+        'whiteOverDarkBlue':"#3d3c4c"
       },
       keyframes:{
         'record':{
@@ -39,9 +40,17 @@ export default withMT({
           '0%':{translate:"0 150px",opacity:"0"},
           '100%':{translate:"0 0",opacity:"1"}
         },
+        'fadeDown':{
+          '0%':{translate:"0 -150px",opacity:"0"},
+          '100%':{translate:"0 0",opacity:"1"}
+        },
         'fadeLeft':{
           '0%':{translate:"-150px 0",opacity:"0"},
           '100%':{translate:"0 0",opacity:"1"}
+        },
+        'popUp':{
+          '0%':{scale:"0",opacity:"0"},
+          '100%':{scale:"1",opacity:"1"}
         },
         'rotation':{
           '0%':{rotate: "0deg"},
@@ -62,7 +71,9 @@ export default withMT({
       animation: {
         record: 'record 1s 1s ease-in-out forwards',
         fadeUp: 'fadeUp 0.8s ease-in-out forwards',
+        fadeDown: 'fadeDown 0.8s ease-in-out forwards',
         fadeLeft: 'fadeLeft 0.8s ease-in-out forwards',
+        popUp: 'popUp 0.8s ease-in-out forwards',
         notice: 'notice 4s ease-in-out forwards',
         rotation: 'rotation 2s infinite linear',
         deleteAccount: 'deleteAccount 2s infinite linear'
