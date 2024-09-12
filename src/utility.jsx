@@ -75,7 +75,13 @@ const getCountryByIp=async ()=>{
 }
 
 const prettyPrintDate=(date)=>{
-    return date.toISOString().split('T')[0];
+    return date.getFullYear() +"-"+(((date.getMonth()+1) < 10)?"0":"") + (date.getMonth()+1) +"-"+ ((date.getDate() < 10)?"0":"") + date.getDate();
+}
+
+const prettyPrintDateAndHours=(date)=>{
+    return date.getFullYear() +"-"+(((date.getMonth()+1) < 10)?"0":"") + (date.getMonth()+1) +"-"+ ((date.getDate() < 10)?"0":"") + date.getDate() + "  "+
+    ((date.getHours() < 10)?"0":"") + date.getHours() +":"+ ((date.getMinutes() < 10)?"0":"") + date.getMinutes() +":"+ ((date.getSeconds() < 10)?"0":"") + date.getSeconds();
+
 }
 
 const prettyPrintParameter=(param)=>{
@@ -166,6 +172,10 @@ const skillParametersJoinPrint=(skillParameters)=>{
     return skillParameters.join("-");
 }
 
+const calculateCurrentRoundTournament=(games)=>{
+    return parseInt(Object.keys(games).sort().reverse()[0]);
+}
+
 export {calculateMaxValueExpByLv, calculateEarnedExpSkill, parseJwt, getCountryByIp, TooltipChartCustom, prettyPrintDate, 
     prettyPrintParameter, numberMod, calculateAvgAccumulately, calculateEstimatedAvgPerformanceBasedOnRankingPoints,
-    filterUserLeaderboard, skillParametersJoinPrint};
+    filterUserLeaderboard, skillParametersJoinPrint, calculateCurrentRoundTournament, prettyPrintDateAndHours};

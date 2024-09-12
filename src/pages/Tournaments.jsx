@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import Container from "../components/Container";
-import { checkTournamentRequirements, getAllOpenTournaments, subscribeToTournament } from "../firebase";
+import { checkTournamentRequirements, getAllOpenTournaments, getUserData, subscribeToTournament } from "../firebase";
 import Navbar from "../components/Navbar";
 import { skills } from "../assets/data";
 import { Link } from "react-router-dom";
+import { prettyPrintDate, prettyPrintDateAndHours } from "../utility";
 
 const Tournaments=(props)=>{
     const [isLoading,setIsLoading]=useState(true);
@@ -41,9 +42,9 @@ const Tournaments=(props)=>{
             const [resp,tournamentsList]=await getAllOpenTournaments(selectedSkill);
         
             if(resp){
-                if(tournamentsList.length>0){
+                for(const i in tournamentsList){
                     //store if the user is in the tournament or not
-                    tournamentsList[0].userIsSubscribed=(tournamentsList[0].subscribedUsers.find(u=>u==props.user.uid)==undefined)?false:true;
+                    tournamentsList[i].userIsSubscribed=(tournamentsList[i].subscribedUsers.find(u=>u==props.user.uid)==undefined)?false:true;
                 }
 
                 //update tournaments
@@ -93,21 +94,51 @@ const Tournaments=(props)=>{
 
         //if never fetched user requiriments of the selcted tournament, fetch them
         if(tournaments[selectedSkill][tournamentIndex].requirements.length>0 && tournaments[selectedSkill][tournamentIndex].requirements[0].matched==undefined){
+            const tournamentsCopy={...tournaments};
+
             //calculate if current user matches the selected tournament requirements
             const [resp,req]=await checkTournamentRequirements(tournaments[selectedSkill][tournamentIndex].requirements,selectedSkill);
 
             if(resp){
-                setTournaments((t)=>{
-                    //set requirements match array to selected tournament
-                    for(const i in t[selectedSkill][tournamentIndex].requirements){
-                        t[selectedSkill][tournamentIndex].requirements[i]={...t[selectedSkill][tournamentIndex].requirements[i],matched:req[i]};
+                //set requirements match array to selected tournament
+                for(const i in tournamentsCopy[selectedSkill][tournamentIndex].requirements){
+                    tournamentsCopy[selectedSkill][tournamentIndex].requirements[i]={...tournamentsCopy[selectedSkill][tournamentIndex].requirements[i],matched:req[i]};
+                }
+
+                //indicates if user matches all requirements
+                tournamentsCopy[selectedSkill][tournamentIndex].matchesAllrequirements=(tournamentsCopy[selectedSkill][tournamentIndex].requirements.map(r=>r.matched).find(e=>e==false)==undefined)?true:false;
+
+                //indicates if the user is playing in the current round
+                if(tournamentsCopy[selectedSkill][tournamentIndex].status=="progress"){
+                    var userInThisRound=false;
+                    var userNextGameIndex=-1;
+                    const currentRound=tournamentsCopy[selectedSkill][tournamentIndex].currentRound;
+
+                    //for each game in current round
+                    for(const c in tournamentsCopy[selectedSkill][tournamentIndex].games[currentRound]){
+                        //if current user is in this game
+                        if(tournamentsCopy[selectedSkill][tournamentIndex].games[currentRound][c].users.includes(props.user.uid)){
+                            //indicates the user play in current round
+                            userInThisRound=true;
+                            userNextGameIndex=c;
+
+                            //fetch data of users in this game
+                            const [r1,user1]=await getUserData(tournamentsCopy[selectedSkill][tournamentIndex].games[currentRound][c].users[0]);
+                            if(r1){
+                                const [r2,user2]=await getUserData(tournamentsCopy[selectedSkill][tournamentIndex].games[currentRound][c].users[1]);
+                                if(r2){
+                                    tournamentsCopy[selectedSkill][tournamentIndex].games[currentRound][c].usersData=[user1,user2];
+                                }
+                            }
+                        }
                     }
 
-                    //indicates if user matches all requirements
-                    t[selectedSkill][tournamentIndex].matchesAllrequirements=(t[selectedSkill][tournamentIndex].requirements.map(r=>r.matched).find(e=>e==false)==undefined)?true:false;
+                    tournamentsCopy[selectedSkill][tournamentIndex].userInCurrentRound=userInThisRound;
+                    tournamentsCopy[selectedSkill][tournamentIndex].userNextGameIndex=parseInt(userNextGameIndex);
+                }
 
-                    return t;
-                })
+                console.log(tournamentsCopy);
+                setTournaments(tournamentsCopy);
             }else{
                 console.log(req);
             }
@@ -168,27 +199,35 @@ const Tournaments=(props)=>{
                             {tournaments[selectedSkill][0].requirements.length==0 && <div className="text-white text-xs">Free Entry</div>}
 
                             </>}
+                            
+                            <div className="flex flex-row items-center gap-3">
+                                {tournaments[selectedSkill][0].status=="open" && 
+                                <button className={"bg-white bg-opacity-30 mt-4 rounded-md text-base text-white py-1 text-center w-[150px] "+((tournaments[selectedSkill][0].matchesAllrequirements && !tournaments[selectedSkill][0].userIsSubscribed)?"":"opacity-50")} 
+                                    disabled={!tournaments[selectedSkill][0].matchesAllrequirements || tournaments[selectedSkill][0].userIsSubscribed} 
+                                    onClick={()=>subscribeTournament(0)}
+                                    title={tournaments[selectedSkill][0].matchesAllrequirements?"":"Not all requirements are matched"}
+                                    ref={firstTournamentSubscribeButtonRef}
+                                >
+                                    <div className="flex justify-center items-center">
+                                    {!subscribeLoading?
+                                        (tournaments[selectedSkill][0].userIsSubscribed?"Already subcribed":"Subscribe")
+                                    :""}
 
-                            {tournaments[selectedSkill][0].status=="open" && 
-                            <button className={"bg-white bg-opacity-30 mt-4 rounded-md text-base text-white py-1 text-center w-[150px] "+((tournaments[selectedSkill][0].matchesAllrequirements && !tournaments[selectedSkill][0].userIsSubscribed)?"":"opacity-50")} 
-                                disabled={!tournaments[selectedSkill][0].matchesAllrequirements || tournaments[selectedSkill][0].userIsSubscribed} 
-                                onClick={()=>subscribeTournament(0)}
-                                title={tournaments[selectedSkill][0].matchesAllrequirements?"":"Not all requirements are matched"}
-                                ref={firstTournamentSubscribeButtonRef}
-                            >
-                                <div className="flex justify-center items-center">
-                                {!subscribeLoading?
-                                    (tournaments[selectedSkill][0].userIsSubscribed?"Already subcribed":"Subscribe")
-                                :""}
+                                    {subscribeLoading && <i className="fi fi-tr-loading text-white leading-[0] origin-center animate-rotation my-1"></i>}
+                                    </div>
+                                </button>}
 
-                                {subscribeLoading && <i className="fi fi-tr-loading text-white leading-[0] origin-center animate-rotation my-1"></i>}
-                                </div>
-                            </button>}
+                                {tournaments[selectedSkill][0].status=="progress" && 
+                                <button className="bg-white bg-opacity-30 mt-4 rounded-md text-base text-white py-1 text-center w-[150px]" 
+                                    onClick={()=>moreDetails(0)}
+                                >More Details</button>}
 
-                            {tournaments[selectedSkill][0].status=="progress" && 
-                            <button className="bg-white bg-opacity-30 mt-4 rounded-md text-base text-white py-1 text-center w-[150px]" 
-                                onClick={()=>moreDetails(0)}
-                            >More Details</button>}
+                                {tournaments[selectedSkill][0].status=="open" && 
+                                <button className="bg-white bg-opacity-30 mt-4 rounded-md text-base text-white py-1 text-center w-[150px]" 
+                                    onClick={()=>moreDetails(0)}
+                                >More Details</button>}
+                            </div>
+                            
                         </div>
 
                         {tournaments[selectedSkill][0].requirements.length!=0 && tournaments[selectedSkill][0].status=="open" &&
@@ -239,15 +278,15 @@ const Tournaments=(props)=>{
             </div>
 
 
-            {/*SKILL SCREEN*/}
-            {!isLoading && 
+            {/*SINGLE TOURNAMENT SCREEN*/}
+            {!isLoading && tournaments[selectedSkill].length>0 && 
             <div className="relative w-full h-[100vh] flex flex-col font-navbar overflow-hidden" ref={tournamentDetailRef}>
                 {tournamentDetailLoading && <i className="fi fi-tr-loading mx-auto my-auto text-white leading-[0] text-[40px] origin-center animate-rotation"></i>}
 
                 {!tournamentDetailLoading && <>
                 <div className="relative w-full animate-fadeDown">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 250" preserveAspectRatio="none" className="h-[120px] w-full">
-                        <path fill="rgba(255,255,255,0.13)" fill-opacity="1" d="M0,192L48,192C96,192,192,192,288,192C384,192,480,192,576,197.3C672,203,768,213,864,186.7C960,160,1056,96,1152,85.3C1248,75,1344,117,1392,138.7L1440,160L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z"></path>
+                        <path fill="rgba(255,255,255,0.13)" fillOpacity="1" d="M0,192L48,192C96,192,192,192,288,192C384,192,480,192,576,197.3C672,203,768,213,864,186.7C960,160,1056,96,1152,85.3C1248,75,1344,117,1392,138.7L1440,160L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z"></path>
                     </svg>
 
                     <div className="absolute flex flex-col gap-2 top-4 left-5 text-white text-2xl font-default animate-fadeLeft">
@@ -276,12 +315,12 @@ const Tournaments=(props)=>{
                             <div className={"w-[40px] h-[3px] "+(tournaments[selectedSkill][selectedTournamentDetail].requirements[0].matched?"bg-mainGreen":"bg-mainRed")}></div>
                             {tournaments[selectedSkill][selectedTournamentDetail].requirements.map((req)=>{
                                 return(
-                                    <div className="flex flex-row items-center gap-3">
+                                    <div className="w-full flex flex-row items-center gap-3">
                                         <div className="relative w-[40px] h-[50px] flex items-center justify-center">
                                             <i class={"z-[2] bg-resultsBg text-[30px] leading-[0] "+(req.matched?"fi fi-ss-check-circle text-mainGreen":"fi fi-sr-cross-circle text-mainRed")}></i>
                                             <div className={"absolute h-full w-1 z-[1] "+(req.matched?"bg-mainGreen":"bg-mainRed")}></div>  
                                         </div>
-                                        <div className="text-white text-sm max-w-[200px] line-clamp-1" title={req.description}>{req.description}</div>
+                                        <div className="text-white text-sm flex-1 line-clamp-1" title={req.description}>{req.description}</div>
                                     </div>
                                 )
                             })}
@@ -310,7 +349,44 @@ const Tournaments=(props)=>{
                         </button>
                     </div>
                 </div>}
+
+
+                {tournaments[selectedSkill][selectedTournamentDetail].status=="progress" &&
+                    <div className="w-full !flex-1 flex flex-row gap-5 items-center mt-5">
+                        <div className="basis-[45%] h-full flex flex-col items-center">
+                            {//if current user play in the current round of the tournament, show his next game
+                            tournaments[selectedSkill][selectedTournamentDetail].userInCurrentRound && <>
+                                <div className="text-white text-xl font-semibold">NEXT GAME</div>
+
+                                <div className="text-white text-sm px-2 py-1 font-navbar bg-tooltipColor rounded-t-md mt-3">{"ROUND "+tournaments[selectedSkill][selectedTournamentDetail].currentRound}</div>
+                                <div className="flex flex-row items-center justify-center gap-5 py-2 px-4 rounded-bl-md rounded-tr-md bg-tooltipColor">
+                                    {//for each user in the game in with current user playes 
+                                    tournaments[selectedSkill][selectedTournamentDetail].games[tournaments[selectedSkill][selectedTournamentDetail].currentRound][tournaments[selectedSkill][selectedTournamentDetail].userNextGameIndex].usersData.map((user,index)=>{
+                                        return(<>
+                                            <div className="flex flex-row items-center gap-2">
+                                                <img src={user.profileImage} className="w-[25px] h-[25px] rounded-full"/>
+                                                <div className="font-navbar text-white text-base w-[130px] line-clamp-1" title={user.username}>{user.username}</div>
+                                            </div>
+
+                                            {index==0 && 
+                                            <div className="relative flex flex-row items-center justify-center h-[32px]">
+                                                <div className="text-white font-default z-[2] bg-tooltipColor leading-[20px] h-[20px]">VS</div>
+                                                <div className="absolute h-full w-[1px] bg-white bg-opacity-60"></div>
+                                            </div>}
+                                        </>);
+                                    })}
+                                </div>
+                                <div className="text-white text-opacity-70 text-sm whitespace-pre flex flex-col items-center gap-3 mt-3">To be played by:&emsp;
+                                    {prettyPrintDateAndHours(tournaments[selectedSkill][selectedTournamentDetail].games[tournaments[selectedSkill][selectedTournamentDetail].currentRound][tournaments[selectedSkill][selectedTournamentDetail].userNextGameIndex].expirationDate.toDate())}
+                                    <div className="text-[10px] leading-[14px] text-center w-[170px] text-wrap text-opacity-50">Failure to respect the expiration date will results in the loss of the game</div>
+                                </div>
+                        </>}
+                        </div>
+                    </div>
+                }
                 </>}
+
+                {!subscribeLoading && <i className={"absolute text-[300px] leading-[0] text-white text-opacity-5 bottom-7 right-10 animate-fadeUp "+skills[selectedSkill].icon}/>}
             </div>}
         </Container>
     )

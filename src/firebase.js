@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { addDoc, collection, count, deleteDoc, doc, DocumentSnapshot, FieldPath, getCountFromServer, getDoc, getDocs, getFirestore, limit, orderBy, query, QuerySnapshot, runTransaction, setDoc, updateDoc, where } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, signOut } from "firebase/auth";
 import { skills } from "./assets/data";
-import { calculateAvgAccumulately, calculateEstimatedAvgPerformanceBasedOnRankingPoints, filterUserLeaderboard, prettyPrintParameter, skillParametersJoinPrint } from "./utility";
+import { calculateAvgAccumulately, calculateCurrentRoundTournament, calculateEstimatedAvgPerformanceBasedOnRankingPoints, filterUserLeaderboard, prettyPrintParameter, skillParametersJoinPrint } from "./utility";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -514,6 +514,13 @@ const getAllOpenTournaments=async(skill)=>{
             return [true,[]];
         }else{
             const tournaments=tournamentsList.docs.map(t=>{return{...t.data(),id:t.id}});
+
+            //calculate current round number for each tournament with status "progress"
+            for(const i in tournaments){
+                if(tournaments[i].status=="progress"){
+                    tournaments[i].currentRound=calculateCurrentRoundTournament(tournaments[i].games);
+                }
+            }
 
             //calculate if current user matches the first tournament requirements
             const [resp,req]=await checkTournamentRequirements(tournaments[0].requirements,tournaments[0].skill);
