@@ -176,6 +176,12 @@ const calculateCurrentRoundTournament=(games)=>{
     return parseInt(Object.keys(games).sort().reverse()[0]);
 }
 
+//calculates number of rounds for each tournaments this way: log_2(numUsers)=Nrounds
+//so we have that numUsers=2^Nrounds
+const calculateNumRoundsTournaments=(numUsers)=>{
+    return Math.log2(numUsers);
+}
+
 export {calculateMaxValueExpByLv, calculateEarnedExpSkill, parseJwt, getCountryByIp, TooltipChartCustom, prettyPrintDate, 
     prettyPrintParameter, numberMod, calculateAvgAccumulately, calculateEstimatedAvgPerformanceBasedOnRankingPoints,
-    filterUserLeaderboard, skillParametersJoinPrint, calculateCurrentRoundTournament, prettyPrintDateAndHours};
+    filterUserLeaderboard, skillParametersJoinPrint, calculateCurrentRoundTournament, prettyPrintDateAndHours, calculateNumRoundsTournaments};
