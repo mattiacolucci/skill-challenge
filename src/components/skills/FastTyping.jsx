@@ -242,7 +242,7 @@ const FastTyping=(props)=>{
                 skill:"FAST TYPING", user:props.user.uid, totTime:parseFloat(results.totalTime.toFixed(3)),
                 avgTime:parseFloat(results.avgTime.toFixed(3)), fastestWord:parseFloat(results.fastestWord.time.toFixed(3)), 
                 date: new Date(), skillParameters:skillParametersJoinPrint(skillParameters)
-            },0,props.skillParameters,props.records,results.distancesFromRecords,newLevel,newExp,newRankingPoints);
+            },0,props.skillParameters,props.records,results.distancesFromRecords,newLevel,newExp,newRankingPoints,props.tournament);
 
             if(resp){
                 //go to results screen

@@ -243,9 +243,10 @@ const getLastGamesUser=async(skill,skillParameters,user,numGames)=>{
  * @param {*} skillParameters indicates parameters of the skill played
  * @param {*} records indicates current WR, NR and PB of the skill played
  * @param {*} isRecord indicates if the game to store is a record or not. Contains all distances from current records
+ * @param {*} tournament indicates if the game to store is a tournament duel and contains the info about the relative tournament, game and duel
  * @returns 
  */
-const storeGameResult=async (result,skillIndex,skillParametersIndex,records,isRecord,newLv,newExp,newRankingPoints)=>{
+const storeGameResult=async (result,skillIndex,skillParametersIndex,records,isRecord,newLv,newExp,newRankingPoints,tournament)=>{
     try{
         await runTransaction(db,async(transactionDB)=>{
             const skillParameters=skills[skillIndex].skillParametersPossibleValues[skillParametersIndex];
@@ -256,6 +257,12 @@ const storeGameResult=async (result,skillIndex,skillParametersIndex,records,isRe
             //get current user
             const currUser = await transactionDB.get(doc(db,"users",auth.currentUser.uid));
             var newUser=currUser.data();
+
+            //get tournament of the game if it was a duel of a tournament
+            var tournamentDoc;
+            if(tournament!=undefined){
+                tournamentDoc = await transactionDB.get(doc(db,"tournaments",tournament.id));
+            }
 
             //json which indicates the records done by the new game
             var gamePersonalBest={};
@@ -338,6 +345,66 @@ const storeGameResult=async (result,skillIndex,skillParametersIndex,records,isRe
 
             //update user profile
             transactionDB.update(doc(db,"users",auth.currentUser.uid),newUser);
+
+            //update tournament if this game was a tournament duel
+            if(tournament!=undefined){
+                //get user index in the duel and the index of the other user
+                const userIndexInGame=tournament.userGameIndex;
+                const opponentIndexInGame=(userIndexInGame==0)?1:0;
+
+                //get tournament duel, game and round
+                var duel = tournamentDoc.games[tournament.round][tournament.gameIndex].duels[skills[result.skill].skillParametersPossibleValues[tournament.duelId]];
+
+                //if it is undefined, create the duel and set to "-" the result of the other user
+                if(duel==undefined){
+                    duel={results:[]};
+                    duel.results[opponentIndexInGame]="-";
+                }
+
+                //store performance parameter as result in game
+                duel.results[userIndexInGame]=performanceParameter;
+            
+                //set the duel winner if it has finished
+                if(duel.results[opponentIndexInGame]!="-"){
+                    //if the duel is already created and so the other user already played, let the duel finish and set the winner
+                    duel.winner=(duel.results[userIndexInGame]<duel.results[opponentIndexInGame])?userIndexInGame:opponentIndexInGame;
+                    
+                    //update duel in tournament
+                    tournamentDoc.games[tournament.round][tournament.gameIndex].duels[skills[result.skill].skillParametersPossibleValues[tournament.duelId]]=duel;
+
+                    //if this duel is over and it was the last duel of the tournament game, set that the game is over and winner
+                    if(tournament.duelId==(skills[result.skill].skillParametersPossibleValues.length-1)){
+                        const game=tournamentDoc.games[tournament.round][tournament.gameIndex]
+                        game.playing=false;
+
+                        const gameWinners=(game.duels).map(d=>d.winner);
+                        const userWins=gameWinners.filter(d=>d==userIndexInGame).length;
+                        const oppoWins=gameWinners.filter(d=>d==opponentIndexInGame).length;
+                        game.winner=(userWins>oppoWins)?userIndexInGame:opponentIndexInGame;
+
+                        //updae game in tournament
+                        tournamentDoc.games[tournament.round][tournament.gameIndex]=game;
+
+                        //if the game is over and it was the last game of the round, create a new round
+                        if(tournamentDoc.games[tournament.round].map((g=>g.playing).find(false)==undefined)){
+                            //if the past was not the last one
+                            if(tournament.round<calculateNumRoundsTournaments(tournamentDoc.numUsers)){
+                                const newRound=createNewRoundGames(tournamentDoc.games[tournament.round]);
+                                tournamentDoc.games.push(newRound);
+                            }else{
+                                //if it was the last round, set tournament to closed
+                                tournamentDoc.status="closed";
+                            }
+                        }
+                    }
+                }else{
+                    //update duel in tournament
+                    tournamentDoc.games[tournament.round][tournament.gameIndex].duels[skills[result.skill].skillParametersPossibleValues[tournament.duelId]]=duel;
+                }
+
+                //update tournament on db
+                transactionDB.update(doc(db,"tournaments",tournament.id),tournamentDoc);
+            }
 
             //save the current game
             await addDoc(collection(db,"games"),{...result,isPersonalBest:gamePersonalBest,userCountry:newUser.country});
@@ -507,7 +574,7 @@ const getUserPositionInRankingPointsLeaderboard=async(user,type="WR")=>{
 }
 
 //function which get all tournaments which are not closed and relative to a certain skill
-const getAllOpenTournaments=async(skill)=>{
+const getAllOpenAndProgressTournaments=async(skill)=>{
     try{
         const tournamentsList=await getDocs(query(collection(db,"tournaments"),where("status","in",["open","progress"]),where("skill","==",skills[skill].title),orderBy("creationDate","desc")));
         if(tournamentsList.empty){
@@ -630,7 +697,43 @@ const checkTournamentRequirements=async(req,skill)=>{
     }
 }
 
+const createNewRoundGames=(pastRoundGames)=>{
+    //get all users that win past round games
+    var winnerUsers=pastRoundGames.map(g=>g.users[g.winner]);
+
+    //create random associations
+    var newGames=[]
+
+    for(const i in winnerUsers.length/2){
+        newGames[i].users=[];
+
+        //set first user of a new game, and delete user from the list of past round winners
+        const user1Index=Math.floor(Math.random()*winnerUsers.length)
+        newGames[i].users[0]=winnerUsers[user1Index];
+        winnerUsers.splice(user1Index,1);
+
+        //set second user of a new game, and delete user from the list of past round winners
+        const user2Index=Math.floor(Math.random()*winnerUsers.length)
+        newGames[i].users[1]=winnerUsers[user2Index];
+        winnerUsers.splice(user2Index,1);
+
+        //set expiration date of the game at the day after tomorrow at mid night
+        const todayDate=new Date();
+        todayDate.setDate(todayDate.getDate()+2);
+        todayDate.setHours(0,0,0,0)
+        newGames[i].expirationDate=todayDate;
+
+        //set empty duels
+        newGames[i].duels={};
+
+        //set playing true
+        newGames[i].playing=true;
+    }
+
+    return newGames;
+}
+
 export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillLeaderboard,
     getUserPersonalBest,getUserPositionInLeaderboard,storeGameResult,updateUserCountry,updateUserUsername,getAllUserGames,
-    deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard, getAllOpenTournaments, subscribeToTournament, checkTournamentRequirements
+    deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard, getAllOpenAndProgressTournaments, subscribeToTournament, checkTournamentRequirements
 };

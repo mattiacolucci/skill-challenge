@@ -16,6 +16,25 @@ const Play=(props)=>{
     const [userData,setUserData]=useState({});  //state which contains user profile data and record done in the selected skill
     const [records,setRecords]=useState({});  //state which contains all NR and WR records of the selected skill
     const [isLoading,setIsLoading]=useState(false);
+    const [tournamentChecked,setTournamentChecked]=useState(false);
+
+    //check if this play session is for a tournament duel
+    //check is done just after the playCountDownRef is ready to be used
+    useEffect(()=>{
+        const checkIfTournament=async()=>{
+            if(props.tournament!=undefined){
+                //if this is a tournament duel, set skill and parameter and start the game directly
+                setSelectedSkill(props.skill);
+                setSkillsParameters(props.parameters);
+                setTournamentChecked(true);
+                await goPlayScreen();
+            }
+        }
+
+        if(!tournamentChecked){
+            checkIfTournament();
+        }
+    },[playCountDownRef.current])
 
     const continueState=()=>{
         setSelectionState(selectionState+1);
@@ -205,7 +224,13 @@ const Play=(props)=>{
                     {/*display the respective game based on the skill selected. A callback to call 
                     when the game skill ends is passed to the game skill component and skills parameters
                     are passed too*/}
-                    {selectedSkill==0 && <FastTyping skillParameters={skillsParameters} user={userData} records={records}/>}
+                    {selectedSkill==0 && 
+                    <FastTyping 
+                        skillParameters={skillsParameters} 
+                        user={userData} 
+                        records={records}
+                        tournament={props.tournament}
+                    />}
                     </>
                 }
 
