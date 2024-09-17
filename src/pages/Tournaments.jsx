@@ -4,7 +4,7 @@ import { checkTournamentRequirements, getAllOpenAndProgressTournaments, getUserD
 import Navbar from "../components/Navbar";
 import { skills } from "../assets/data";
 import { Link } from "react-router-dom";
-import { numberMod, prettyPrintDate, prettyPrintDateAndHours, prettyPrintParameter, skillParametersJoinPrint } from "../utility";
+import { calculateGameScoreTournament, numberMod, prettyPrintDate, prettyPrintDateAndHours, prettyPrintParameter, skillParametersJoinPrint } from "../utility";
 import Play from "./Play";
 
 const Tournaments=(props)=>{
@@ -18,6 +18,7 @@ const Tournaments=(props)=>{
     const [tournaments,setTournaments]=useState({});
     const [usersData,setUsersData]=useState([]);
     const [isPlayScreen,setIsPlayScreen]=useState(false);
+    const [selectedState,setSelectedState]=useState(0);
     const firstTournamentSubscribeButtonRef=useRef();
     const firstTournamentSubscribeButtonDetailsRef=useRef();
     const tournamentDetailRef=useRef();
@@ -120,6 +121,11 @@ const Tournaments=(props)=>{
 
         const tournamentsCopy={...tournaments};
 
+        //get current round
+        const currentRound=tournamentsCopy[selectedSkill][tournamentIndex].currentRound;
+
+        setSelectedTournamentDetailRound(currentRound);
+
         //if never fetched user requiriments of the selcted tournament, fetch them
         if(tournaments[selectedSkill][tournamentIndex].requirements.length>0 && tournaments[selectedSkill][tournamentIndex].requirements[0].matched==undefined){
 
@@ -142,8 +148,6 @@ const Tournaments=(props)=>{
         //indicates if the user is playing in the current round if never calculated
         //and fetch user data of users in current round if never fetched
         if(tournamentsCopy[selectedSkill][tournamentIndex].status=="progress" && tournamentsCopy[selectedSkill][tournamentIndex].userInThisRound==undefined){
-            //get current round
-            const currentRound=tournamentsCopy[selectedSkill][tournamentIndex].currentRound;
 
             //set that the user do not play in this round
             tournamentsCopy[selectedSkill][tournamentIndex].userInThisRound=false;
@@ -151,11 +155,7 @@ const Tournaments=(props)=>{
             //for each game in current round
             for(const c in tournamentsCopy[selectedSkill][tournamentIndex].games[currentRound]){
                 //get how much duels each user have won in this game
-                const gameWinners=Object.values(tournamentsCopy[selectedSkill][tournamentIndex].games[currentRound][c].duels).map(d=>d.winner);
-                const duelsWinUser1=gameWinners.filter(d=>d==0).length;
-                const duelsWinUser2=gameWinners.filter(d=>d==1).length;
-                
-                tournamentsCopy[selectedSkill][tournamentIndex].games[currentRound][c].scores=[duelsWinUser1,duelsWinUser2];
+                tournamentsCopy[selectedSkill][tournamentIndex].games[currentRound][c].scores=calculateGameScoreTournament(tournamentsCopy[selectedSkill][tournamentIndex].games[currentRound][c].duels);
 
                 //if current user is in this game
                 if(tournamentsCopy[selectedSkill][tournamentIndex].games[currentRound][c].users.includes(props.user.uid)){
@@ -192,12 +192,14 @@ const Tournaments=(props)=>{
 
         setTournaments(tournamentsCopy);
         
+        setSelectedState(1);
         setTournamentDetailLoading(false);
         setSelectedTournamentDetail(tournamentIndex);
     }
 
     const goBackToList=()=>{
         tournamentListRef.current.scrollIntoView({behavior: "smooth", block: "start", inline: "nearest"});
+        setSelectedState(0);
     }
 
     const incrementSelectedRound=async()=>{
@@ -210,11 +212,14 @@ const Tournaments=(props)=>{
 
         setGamesLoading(true);
 
-        //fetch user data of games in new round, if never fetched
+        //fetch user data of games in new round, if never fetched and calculate score
         for(const c in tournaments[selectedSkill][selectedTournamentDetail].games[newRound]){
             const game=tournaments[selectedSkill][selectedTournamentDetail].games[newRound][c];
 
             await fetchUserDataGame(game);
+
+            //calculate score
+            tournaments[selectedSkill][selectedTournamentDetail].games[newRound][c].scores=calculateGameScoreTournament(game.duels);
         }
 
         setGamesLoading(false);
@@ -231,11 +236,14 @@ const Tournaments=(props)=>{
 
         setGamesLoading(true);
 
-        //fetch user data of games in new round, if never fetched
+        //fetch user data of games in new round, if never fetched and calculate score
         for(const c in tournaments[selectedSkill][selectedTournamentDetail].games[newRound]){
-            const game=tournaments[selectedSkill][selectedTournamentDetail].games[newRound];
+            const game=tournaments[selectedSkill][selectedTournamentDetail].games[newRound][c];
 
             await fetchUserDataGame(game);
+
+            //calculate score
+            tournaments[selectedSkill][selectedTournamentDetail].games[newRound][c].scores=calculateGameScoreTournament(game.duels);
         }
 
         setGamesLoading(false);
@@ -245,7 +253,9 @@ const Tournaments=(props)=>{
 
     if(isPlayScreen){
         return <Play 
-            user={props.user} 
+            user={props.user}
+            skill={selectedSkill}
+            parameters={tournaments[selectedSkill][selectedTournamentDetail].userNextDuelIndex}
             tournament={{
                 id:tournaments[selectedSkill][selectedTournamentDetail].id,
                 round:tournaments[selectedSkill][selectedTournamentDetail].currentRound,
@@ -298,6 +308,8 @@ const Tournaments=(props)=>{
                                     <i className="fi fi-sr-users leading-[0]"></i>
                                     {tournaments[selectedSkill][0].numUsers-tournaments[selectedSkill][0].subscribedUsers.length}
                                 </div>
+
+                                <div className="text-white text-xs text-opacity-75">Start at:&emsp;{prettyPrintDateAndHours(tournaments[selectedSkill][0].startDate.toDate())}</div>
                                 
                                 {tournaments[selectedSkill][0].requirements.length==0 && <div className="text-white text-xs">Free Entry</div>}
     
@@ -387,13 +399,13 @@ const Tournaments=(props)=>{
     
     
                 {/*SINGLE TOURNAMENT SCREEN*/}
-                {!isLoading && tournaments[selectedSkill].length>0 && 
+                {!isLoading && tournaments[selectedSkill].length>0 &&
                 <div className="relative w-full h-[100vh] flex flex-col font-navbar overflow-hidden" ref={tournamentDetailRef}>
                     {tournamentDetailLoading && <i className="fi fi-tr-loading mx-auto my-auto text-white leading-[0] text-[40px] origin-center animate-rotation"></i>}
-    
+
                     {!tournamentDetailLoading && <>
                     <div className="relative w-full animate-fadeDown">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 250" preserveAspectRatio="none" className="h-[120px] w-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 220" preserveAspectRatio="none" className="h-[100px] w-full">
                             <path fill="rgba(255,255,255,0.13)" fillOpacity="1" d="M0,192L48,192C96,192,192,192,288,192C384,192,480,192,576,197.3C672,203,768,213,864,186.7C960,160,1056,96,1152,85.3C1248,75,1344,117,1392,138.7L1440,160L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z"></path>
                         </svg>
     
@@ -406,10 +418,12 @@ const Tournaments=(props)=>{
                         </div>
                     </div>
     
-                    <div className="ml-5 max-w-[90%] text-white text-base line-clamp-1 text-justify">{tournaments[selectedSkill][selectedTournamentDetail].description}</div>
-    
+                    <div className="ml-5 max-w-[90%] text-white text-base line-clamp-1 text-justify">
+                        {tournaments[selectedSkill][selectedTournamentDetail].description}
+                    </div>
+
                     {//TOURNAMENT OPEN
-                    tournaments[selectedSkill][selectedTournamentDetail].status=="open" &&
+                    tournaments[selectedSkill][selectedTournamentDetail].status=="open" && selectedState==1 &&
                     <div className="w-full !flex-1 flex flex-row gap-5 items-center mt-5">
                         <div className="basis-[45%] h-full flex flex-col ml-8 gap-5 pb-5">
                             <div className="text-white text-2xl flex flex-row gap-3 items-center" title="Available places"> 
@@ -421,19 +435,19 @@ const Tournaments=(props)=>{
     
                             {tournaments[selectedSkill][selectedTournamentDetail].requirements.length>0 && 
                             <div className="w-full flex flex-col">
-                                <div className={"w-[40px] h-[3px] "+(tournaments[selectedSkill][selectedTournamentDetail].requirements[0].matched?"bg-mainGreen":"bg-mainRed")}></div>
+                                <div className={"w-[35px] h-[3px] "+(tournaments[selectedSkill][selectedTournamentDetail].requirements[0].matched?"bg-mainGreen":"bg-mainRed")}></div>
                                 {tournaments[selectedSkill][selectedTournamentDetail].requirements.map((req)=>{
                                     return(
                                         <div className="w-full flex flex-row items-center gap-3">
-                                            <div className="relative w-[40px] h-[50px] flex items-center justify-center">
-                                                <i class={"z-[2] bg-resultsBg text-[30px] leading-[0] "+(req.matched?"fi fi-ss-check-circle text-mainGreen":"fi fi-sr-cross-circle text-mainRed")}></i>
+                                            <div className="relative w-[35px] h-[35px] flex items-center justify-center">
+                                                <i class={"z-[2] bg-resultsBg text-[25px] leading-[0] "+(req.matched?"fi fi-ss-check-circle text-mainGreen":"fi fi-sr-cross-circle text-mainRed")}></i>
                                                 <div className={"absolute h-full w-1 z-[1] "+(req.matched?"bg-mainGreen":"bg-mainRed")}></div>  
                                             </div>
                                             <div className="text-white text-sm flex-1 line-clamp-1" title={req.description}>{req.description}</div>
                                         </div>
                                     )
                                 })}
-                                <div className={"w-[40px] h-[3px] "+(tournaments[selectedSkill][selectedTournamentDetail].requirements.at(-1).matched?"bg-mainGreen":"bg-mainRed")}></div>
+                                <div className={"w-[35px] h-[3px] "+(tournaments[selectedSkill][selectedTournamentDetail].requirements.at(-1).matched?"bg-mainGreen":"bg-mainRed")}></div>
                             </div>}
     
                             <div className="flex flex-row gap-3 items-center text-sm text-white text-opacity-70">
@@ -441,6 +455,8 @@ const Tournaments=(props)=>{
                                 
                                 {tournaments[selectedSkill][selectedTournamentDetail].matchesAllrequirements?"All requirements are matched":"Not all requirements are matched"}
                             </div>
+
+                            <div className="text-white text-xs text-opacity-75">Start at:&emsp;{prettyPrintDateAndHours(tournaments[selectedSkill][selectedTournamentDetail].startDate.toDate())}</div>
                             
                             <button className={"mt-auto bg-white bg-opacity-30 rounded-md text-base text-white py-1 text-center w-[150px] "+
                                     ((tournaments[selectedSkill][selectedTournamentDetail].matchesAllrequirements && !tournaments[selectedSkill][selectedTournamentDetail].userIsSubscribed && (tournaments[selectedSkill][selectedTournamentDetail].placesLeft>0))?"":"opacity-50")
@@ -468,7 +484,7 @@ const Tournaments=(props)=>{
     
     
                     {//TOURNAMENT IN PROGRESS
-                    tournaments[selectedSkill][selectedTournamentDetail].status=="progress" &&
+                    tournaments[selectedSkill][selectedTournamentDetail].status=="progress" && selectedState==1 &&
                         <div className="w-full !flex-1 flex flex-row gap-5 items-center mt-3 pb-3">
                             <div className="basis-[45%] h-full flex flex-col items-center">
                                 {//if current user play in the current round of the tournament and is subscribed to the tournament, show his next game
@@ -484,14 +500,12 @@ const Tournaments=(props)=>{
                                                 <div className="flex flex-row items-center gap-2">
                                                 {index==0 && <>
                                                     <img src={userData.profileImage} className="w-[20px] h-[20px] rounded-full"/>
-                                                    <div className="font-navbar text-white text-sm w-[130px] line-clamp-1" title={userData.username}>{userData.username}</div>
+                                                    <div className={"font-navbar text-white text-sm w-[130px] line-clamp-1 "+((!tournaments[selectedSkill][selectedTournamentDetail].userNextGame.playing && tournaments[selectedSkill][selectedTournamentDetail].userNextGame.winner==1)?"text-opacity-50":"")} title={userData.username}>{userData.username}</div>
                                                     <div className="font-navbar text-white text-xs">{tournaments[selectedSkill][selectedTournamentDetail].userNextGame.scores[0]}</div>
-                                                    {!tournaments[selectedSkill][selectedTournamentDetail].userNextGame.playing && tournaments[selectedSkill][selectedTournamentDetail].userNextGame.winner==0 && <div className="font-default text-white bg-yellow-gold bg-opacity-65 p-1 px-1 text-xs">W</div>}
                                                 </>}
                                                 {index==1 && <>
-                                                    {!tournaments[selectedSkill][selectedTournamentDetail].userNextGame.playing && tournaments[selectedSkill][selectedTournamentDetail].userNextGame.winner==1 && <div className="font-default text-white bg-yellow-gold bg-opacity-65 p-1 px-1 text-xs">W</div>}
                                                     <div className="font-navbar text-white text-xs">{tournaments[selectedSkill][selectedTournamentDetail].userNextGame.scores[1]}</div>
-                                                    <div className="font-navbar text-white text-right text-sm w-[130px] line-clamp-1" title={userData.username}>{userData.username}</div>
+                                                    <div className={"font-navbar text-white text-right text-sm w-[130px] line-clamp-1 "+((!tournaments[selectedSkill][selectedTournamentDetail].userNextGame.playing && tournaments[selectedSkill][selectedTournamentDetail].userNextGame.winner==0)?"text-opacity-50":"")} title={userData.username}>{userData.username}</div>
                                                     <img src={userData.profileImage} className="w-[20px] h-[20px] rounded-full"/>
                                                 </>}
                                                 </div>
@@ -512,7 +526,7 @@ const Tournaments=(props)=>{
                                                 
                                                 {[0,1].map((user)=>{
                                                     return(<>
-                                                        <div className="text-white font-default w-[100px] text-center">
+                                                        <div className={"text-white font-default w-[100px] text-center "+((tournaments[selectedSkill][selectedTournamentDetail].userNextGame.duels[skillParametersJoinPrint(param)].winner!=user)?"text-opacity-50":"")}>
                                                             {//print "-" if the duel related to these params, has not been played by the user. If it has been played, print the performanceparameter value obtained
                                                             //by the user in this duel
                                                             tournaments[selectedSkill][selectedTournamentDetail].userNextGame.duels[skillParametersJoinPrint(param)]==undefined?
@@ -575,14 +589,12 @@ const Tournaments=(props)=>{
                                                         <div className="flex flex-row items-center gap-2">
                                                             {index==0 && <>
                                                                 <img src={userData.profileImage} className="w-[20px] h-[20px] rounded-full"/>
-                                                                <div className="font-navbar text-white text-sm w-[130px] line-clamp-1" title={userData.username}>{userData.username}</div>
+                                                                <div className={"font-navbar text-white text-sm w-[130px] line-clamp-1 "+((!game.playing && game.winner==1)?"text-opacity-50":"")} title={userData.username}>{userData.username}</div>
                                                                 <div className="font-navbar text-white text-xs">{game.scores[0]}</div>
-                                                                {!game.playing && game.winner==0 && <div className="font-default text-white bg-yellow-gold bg-opacity-65 p-1 px-1 text-xs">W</div>}
                                                             </>}
                                                             {index==1 && <>
-                                                                {!game.playing && game.winner==1 && <div className="font-default text-white bg-yellow-gold bg-opacity-65 p-1 px-1 text-xs">W</div>}
                                                                 <div className="font-navbar text-white text-xs">{game.scores[1]}</div>
-                                                                <div className="font-navbar text-white text-right text-sm w-[130px] line-clamp-1" title={userData.username}>{userData.username}</div>
+                                                                <div className={"font-navbar text-white text-right text-sm w-[130px] line-clamp-1 "+((!game.playing && game.winner==0)?"text-opacity-50":"")} title={userData.username}>{userData.username}</div>
                                                                 <img src={userData.profileImage} className="w-[20px] h-[20px] rounded-full"/>
                                                             </>}
                                                         </div>

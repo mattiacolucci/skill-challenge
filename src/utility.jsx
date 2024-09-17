@@ -172,6 +172,7 @@ const skillParametersJoinPrint=(skillParameters)=>{
     return skillParameters.join("-");
 }
 
+//function to calculate the current round of a tournament given its games
 const calculateCurrentRoundTournament=(games)=>{
     return parseInt(Object.keys(games).sort().reverse()[0]);
 }
@@ -182,6 +183,27 @@ const calculateNumRoundsTournaments=(numUsers)=>{
     return Math.log2(numUsers);
 }
 
+//calculates the score of a game in a tournament given its duels
+const calculateGameScoreTournament=(duels)=>{
+    //get how much duels each user have won in this game
+    //if the duel has not been played by both player, set as winner the player who played the game
+    const gameWinners=Object.values(duels).map(d=>{
+        //if both players have played (so if no results is "-")
+        if(!d.results.includes("-")){
+        //return the duel winner
+        return d.winner;
+        }else{
+        //else return the only player who played
+        return d.results.findIndex(r=>r!="-");
+        }
+    });
+    const duelsWinUser1=gameWinners.filter(d=>d==0).length;
+    const duelsWinUser2=gameWinners.filter(d=>d==1).length;
+    
+    return [duelsWinUser1,duelsWinUser2];
+}
+
 export {calculateMaxValueExpByLv, calculateEarnedExpSkill, parseJwt, getCountryByIp, TooltipChartCustom, prettyPrintDate, 
     prettyPrintParameter, numberMod, calculateAvgAccumulately, calculateEstimatedAvgPerformanceBasedOnRankingPoints,
-    filterUserLeaderboard, skillParametersJoinPrint, calculateCurrentRoundTournament, prettyPrintDateAndHours, calculateNumRoundsTournaments};
+    filterUserLeaderboard, skillParametersJoinPrint, calculateCurrentRoundTournament, prettyPrintDateAndHours, calculateNumRoundsTournaments,
+    calculateGameScoreTournament};

@@ -11,8 +11,8 @@ const Play=(props)=>{
     const playScreenRef=useRef();
     const playCountDownRef=useRef();
     const [selectionState,setSelectionState]=useState(0);
-    const [selectedSkill,setSelectedSkill]=useState(-1);
-    const [skillsParameters,setSkillsParameters]=useState(0);
+    const [selectedSkill,setSelectedSkill]=useState((props.skill==undefined)?-1:props.skill);  //-1 if not passed a specific value
+    const [skillsParameters,setSkillsParameters]=useState((props.parameters==undefined)?0:props.parameters);  //0 if not passed a specific value
     const [userData,setUserData]=useState({});  //state which contains user profile data and record done in the selected skill
     const [records,setRecords]=useState({});  //state which contains all NR and WR records of the selected skill
     const [isLoading,setIsLoading]=useState(false);
@@ -23,9 +23,7 @@ const Play=(props)=>{
     useEffect(()=>{
         const checkIfTournament=async()=>{
             if(props.tournament!=undefined){
-                //if this is a tournament duel, set skill and parameter and start the game directly
-                setSelectedSkill(props.skill);
-                setSkillsParameters(props.parameters);
+                //if this is a tournament duel, start the game directly
                 setTournamentChecked(true);
                 await goPlayScreen();
             }
@@ -94,7 +92,7 @@ const Play=(props)=>{
                 console.log(skillRecords)
                 setRecords(skillRecords);
             }else{
-                console.log(data);
+                console.log(skillRecords);
             }
 
         }else{
