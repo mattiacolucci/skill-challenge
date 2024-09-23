@@ -3,7 +3,7 @@ import Container from "../components/Container";
 import { checkTournamentRequirements, getAllOpenAndProgressTournaments, getUserData, subscribeToTournament } from "../firebase";
 import Navbar from "../components/Navbar";
 import { skills } from "../assets/data";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { calculateGameScoreTournament, numberMod, prettyPrintDate, prettyPrintDateAndHours, prettyPrintParameter, skillParametersJoinPrint } from "../utility";
 import Play from "./Play";
 
@@ -23,6 +23,7 @@ const Tournaments=(props)=>{
     const firstTournamentSubscribeButtonDetailsRef=useRef();
     const tournamentDetailRef=useRef();
     const tournamentListRef=useRef();
+    const navigate = useNavigate();
 
     useEffect(()=>{
         const fetchTournaments=async()=>{
@@ -60,7 +61,8 @@ const Tournaments=(props)=>{
                 tournamentCopy[selectedSkill]=tournamentsList;
                 setTournaments(tournamentCopy);
             }else{
-                console.log(tournamentsList);
+                navigate("/error",{state:{message:tournamentsList}});
+                return;
             }
         }
 
@@ -141,7 +143,8 @@ const Tournaments=(props)=>{
                 //indicates if user matches all requirements
                 tournamentsCopy[selectedSkill][tournamentIndex].matchesAllrequirements=(tournamentsCopy[selectedSkill][tournamentIndex].requirements.map(r=>r.matched).find(e=>e==false)==undefined)?true:false;
             }else{
-                console.log(req);
+                navigate("/error",{state:{message:req}});
+                return;
             }
         }
 
@@ -526,7 +529,7 @@ const Tournaments=(props)=>{
                                                 
                                                 {[0,1].map((user)=>{
                                                     return(<>
-                                                        <div className={"text-white font-default w-[100px] text-center "+((tournaments[selectedSkill][selectedTournamentDetail].userNextGame.duels[skillParametersJoinPrint(param)].winner!=user)?"text-opacity-50":"")}>
+                                                        <div className={"text-white font-default w-[100px] text-center "+((tournaments[selectedSkill][selectedTournamentDetail].userNextGame.duels[skillParametersJoinPrint(param)]?.winner!=user)?"text-opacity-50":"")}>
                                                             {//print "-" if the duel related to these params, has not been played by the user. If it has been played, print the performanceparameter value obtained
                                                             //by the user in this duel
                                                             tournaments[selectedSkill][selectedTournamentDetail].userNextGame.duels[skillParametersJoinPrint(param)]==undefined?

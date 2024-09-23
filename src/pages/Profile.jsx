@@ -63,10 +63,12 @@ const Profile=(props)=>{
 
                     setIsLoadingPosition(false);
                 }else{
-                    console.log(games);
+                    navigate("/error",{state:{message:games}});
+                    return;
                 }
             }else{
-                console.log(userData);
+                navigate("/error",{state:{message:usrData}});
+                return;
             }
 
             setIsLoading(false);
@@ -200,10 +202,12 @@ const Profile=(props)=>{
                         userPositionCopy[lastGamesSelectedSkill][lastGamesSelectedParameters].WR[resultParameter]=worldPosition;
                         userPositionCopy[lastGamesSelectedSkill][lastGamesSelectedParameters].NR[resultParameter]=nationalPosition;
                     }else{
-                        console.log(nationalPosition);
+                        navigate("/error",{state:{message:nationalPosition}});
+                        return;
                     }
                 }else{
-                    console.log(worldPosition);
+                    navigate("/error",{state:{message:worldPosition}});
+                    return;
                 }
             }
 
@@ -536,7 +540,7 @@ const Profile=(props)=>{
 
                 </div>
 
-                <Notice ref={noticeRef}/>
+                <Notice ref={noticeRef} bg="bg-tooltipColor"/>
             </Container>
         )
     }

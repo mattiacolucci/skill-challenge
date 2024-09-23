@@ -23,7 +23,7 @@ const Notice=forwardRef((props,ref)=>{
 
     return(<>
         {showNotice && 
-        <div className='absolute b-5 left-[50%] translate-x-[-50%] p-1 px-4 border-b-2 border-white glass-effect text-white font-navbar animate-notice'>
+        <div className={"absolute b-5 left-[50%] translate-x-[-50%] p-1 px-4 border-b-2 border-white text-white font-navbar animate-notice "+(props.bg==undefined?"glass-effect":props.bg)}>
             {text}
         </div>}
         </>

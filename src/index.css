@@ -16,6 +16,10 @@
   .record-line-path{
     clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
   }
+
+  .error-container-path{
+    clip-path: polygon(0 0, 75% 0, 100% 100%, 0% 100%);
+  }
 }
 
 body {

@@ -58,7 +58,8 @@ const Leaderboard=(props)=>{
                 setSelectedLeaderboard(selectedLeaderboardCopy);
                 setIsLoading(false);
             }else{
-                console.log(userData);
+                navigate("/error",{state:{message:userData}});
+                return;
             }
 
             setIsLoading(false);
@@ -154,7 +155,8 @@ const Leaderboard=(props)=>{
             setLeaderboard(leaderboardCopy);
             setSearchedLeaderboard(selectedLeaderboard);
         }else{
-            console.log(leaderboard);
+            navigate("/error",{state:{message:leaderboard}});
+            return;
         }
     }
 
@@ -186,7 +188,8 @@ const Leaderboard=(props)=>{
                     rankingCopy[selectedRanking.type]=rankingLeaderboard;
                 }
             }else{
-                console.log(rankingLeaderboard);
+                navigate("/error",{state:{message:rankingLeaderboard}});
+                return;
             }
         }
 

@@ -49,6 +49,7 @@ const createUserAccount=async (country)=>{
             username:auth.currentUser.displayName,
             profileImage:auth.currentUser.photoURL,
             avgPerformances:{},
+            tournamentBadges:[],
             records:{},
             rankingPoints:0,  //default ranking points of any user
             creationDate:new Date()

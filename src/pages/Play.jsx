@@ -85,18 +85,21 @@ const Play=(props)=>{
                     if(res){
                         skillRecords.PB[resultParameter]=personalBest;
                     }else{
-                        console.log(personalBest);
+                        navigate("/error",{state:{message:personalBest}});
+                        return;
                     }
                 }
 
                 console.log(skillRecords)
                 setRecords(skillRecords);
             }else{
-                console.log(skillRecords);
+                navigate("/error",{state:{message:skillRecords}});
+                return;
             }
 
         }else{
-            console.log(data);
+            navigate("/error",{state:{message:data}});
+            return;
         }
 
         //set selection state to 3, so the "3,2,1,go" is displayed
