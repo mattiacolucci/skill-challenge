@@ -2,7 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { addDoc, collection, count, deleteDoc, doc, DocumentSnapshot, FieldPath, getCountFromServer, getDoc, getDocs, getFirestore, limit, orderBy, query, QuerySnapshot, runTransaction, setDoc, updateDoc, where } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, signOut } from "firebase/auth";
-import { skills } from "./assets/data";
+import { languages, skills } from "./assets/data";
 import { calculateAvgAccumulately, calculateCurrentRoundTournament, calculateEstimatedAvgPerformanceBasedOnRankingPoints, calculateNumRoundsTournaments, filterUserLeaderboard, prettyPrintParameter, skillParametersJoinPrint } from "./utility";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -40,6 +40,13 @@ const signOutWithGoogle = () => signOut(auth);
 
 const createUserAccount=async (country)=>{
     try{
+        //get browser language
+        const browserLanguage=navigator.language.split("-")[0].toUpperCase();
+
+        //set language to be used in skills with text to the browser language if it exists in language used in the game
+        //if it does not exists, use english as language
+        const language=(!languages.find(l=>l.code==browserLanguage))?"EN":browserLanguage;
+
         //store user account
         await setDoc(doc(db,"users",auth.currentUser.uid),{
             country:country,
@@ -50,6 +57,7 @@ const createUserAccount=async (country)=>{
             profileImage:auth.currentUser.photoURL,
             avgPerformances:{},
             tournamentBadges:[],
+            language:language,  //language used in skills that show and uses text.
             records:{},
             rankingPoints:0,  //default ranking points of any user
             creationDate:new Date()
@@ -427,6 +435,17 @@ const updateUserUsername=async(username)=>{
     }
 }
 
+const updateUserLanguage=async(language)=>{
+    try{
+        await updateDoc(doc(db,"users",auth.currentUser.uid),{
+            language:language
+        });
+        return [true,"Success"];
+    }catch(e){
+        return [false,e.message];
+    }
+}
+
 const deleteAccount=async()=>{
     try{
         await runTransaction(db,async(transaction)=>{
@@ -725,6 +744,6 @@ const createNewRoundGames=(pastRoundGames)=>{
 }
 
 export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillLeaderboard,
-    getUserPersonalBest,getUserPositionInLeaderboard,storeGameResult,updateUserCountry,updateUserUsername,getAllUserGames,
+    getUserPersonalBest,getUserPositionInLeaderboard,storeGameResult,updateUserCountry,updateUserUsername,updateUserLanguage,getAllUserGames,
     deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard, getAllOpenAndProgressTournaments, subscribeToTournament, checkTournamentRequirements
 };

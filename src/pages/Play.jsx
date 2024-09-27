@@ -71,7 +71,7 @@ const Play=(props)=>{
         const [response,data]=await getUserData(props.user.uid);
 
         if(response){
-            setUserData({...props.user,lv:data.lv,exp:data.exp,username:data.username,rankingPoints:data.rankingPoints});
+            setUserData({...props.user,...data});
 
             //fetch skill leaderboard
             const [resp,skillRecords] = await getSkillLeaderboard(selectedSkill,skillsParameters,data.country,1);

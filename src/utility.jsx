@@ -203,7 +203,20 @@ const calculateGameScoreTournament=(duels)=>{
     return [duelsWinUser1,duelsWinUser2];
 }
 
+//function to get an existing cookie
+const getCookie=(cookieName)=>{
+    return document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(cookieName+"="))
+    ?.split("=")[1];
+}
+
+//function to store a cookie
+const storeCookie=(cookieContent)=>{
+    document.cookie=cookieContent;
+}
+
 export {calculateMaxValueExpByLv, calculateEarnedExpSkill, parseJwt, getCountryByIp, TooltipChartCustom, prettyPrintDate, 
     prettyPrintParameter, numberMod, calculateAvgAccumulately, calculateEstimatedAvgPerformanceBasedOnRankingPoints,
     filterUserLeaderboard, skillParametersJoinPrint, calculateCurrentRoundTournament, prettyPrintDateAndHours, calculateNumRoundsTournaments,
-    calculateGameScoreTournament};
+    calculateGameScoreTournament, getCookie, storeCookie};

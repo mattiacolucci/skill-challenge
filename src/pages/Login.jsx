@@ -2,7 +2,7 @@ import React, { cloneElement, useRef, useState } from 'react';
 import Notice from '../components/Notice.jsx';
 import { checkUserExists, createUserAccount, signInWithGooglePopup } from '../firebase.js';
 import { useNavigate } from 'react-router-dom';
-import { getCountryByIp } from '../utility.jsx';
+import { getCookie, getCountryByIp, storeCookie } from '../utility.jsx';
 
 const Login = () => {
     const noticeRef=useRef();
@@ -18,9 +18,10 @@ const Login = () => {
             //if login went good and user exists display the notice and after them, go to the home
             noticeRef.current.triggerNotice("Welcome "+googleResponse.user.displayName+"!",()=>navigate("/"));
         }else{
-            //if user does not exists, get country by the ip and add it to the db
+            //if user does not exists, get country by the ip
             var country=await getCountryByIp();
 
+            //add the user to the db
             const [userCreated,message]=await createUserAccount(country);
 
             if(userCreated){

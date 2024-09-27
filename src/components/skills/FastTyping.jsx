@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import words_list from "../../assets/words.json";
 import Chronometer from "../Chronometer";
 import { Line, LineChart, XAxis, YAxis } from "recharts";
-import { calculateEarnedExpSkill, skillParametersJoinPrint } from "../../utility.jsx";
+import { calculateEarnedExpSkill, getCookie, skillParametersJoinPrint } from "../../utility.jsx";
 import UserLevel from "../UserLevel";
 import Loading from "../Loading";
 import { calculateNewRankingPoints, storeGameResult } from "../../firebase";
@@ -11,7 +11,7 @@ import { skills } from "../../assets/data.js";
 
 const FastTyping=(props)=>{
     //user settings
-    const language="IT";
+    const language=props.user.language;  //get language of the user
     const username=props.user.username;
     const userProfileImage=props.user.photoURL;
     const [expValue,setExpValue]=useState(props.user.exp);
@@ -62,7 +62,7 @@ const FastTyping=(props)=>{
 
     useEffect(()=>{
         //take all words of the language with length equals to the selected num of chars that the words has to have
-        var allWords=words_list[language][num_chars];
+        var allWords=words_list[language][num_chars].words;
         var wordsToPlay=[]
 
         //get "num_words" random words of length "num_chars"

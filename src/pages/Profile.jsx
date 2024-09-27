@@ -2,12 +2,12 @@ import { cloneElement, useEffect, useRef, useState } from "react";
 import Container from "../components/Container";
 import Navbar from "../components/Navbar";
 import Loading from "../components/Loading";
-import { deleteAccount, getAllUserGames, getSkillLeaderboard, getUserData, getUserPersonalBest, getUserPositionInLeaderboard, signOutWithGoogle, updateUserCountry, updateUserUsername } from "../firebase";
+import { deleteAccount, getAllUserGames, getSkillLeaderboard, getUserData, getUserPersonalBest, getUserPositionInLeaderboard, signOutWithGoogle, updateUserCountry, updateUserLanguage, updateUserUsername } from "../firebase";
 import UserLevel from "../components/UserLevel";
 import Notice from "../components/Notice";
 import { useNavigate } from "react-router-dom";
 import { Option, Select } from "@material-tailwind/react";
-import { countries, lineChartColors, skills } from "../assets/data";
+import { countries, languages, lineChartColors, skills } from "../assets/data";
 import { CartesianGrid, Legend, Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
 import { numberMod, prettyPrintDate, prettyPrintParameter, skillParametersJoinPrint, TooltipChartCustom } from "../utility.jsx";
 
@@ -26,6 +26,10 @@ const Profile=(props)=>{
     const [showEditUsername,setShowEditUsername]=useState(false);
     const [newUsername,setNewUsername]=useState("");
 
+    //edit language
+    const [showEditLanguage,setShowEditLanguage]=useState(false);
+    const [newLanguage,setNewLanguage]=useState("");
+
     //last games
     const [lastGamesSelectedSkill,setLastGameSelectedSkill]=useState(0);
     const [lastGamesSelectedParameters,setLastGamesSelectedParameters]=useState(0);
@@ -41,6 +45,11 @@ const Profile=(props)=>{
         return a.name > b.name ? 1 : -1;
     });
 
+    const languagesData=languages;
+    languagesData.sort(function(a, b) {
+        return a.name > b.name ? 1 : -1;
+    });
+
     useEffect(()=>{
         const fetchUserData=async ()=>{
             const [response,usrData] = await getUserData(props.user.uid);
@@ -52,6 +61,7 @@ const Profile=(props)=>{
                     setUserdata({name:props.user.displayName,profileImage:props.user.photoURL,games:games,...usrData});
                     setNewCountry(usrData.country);
                     setNewUsername(usrData.username);
+                    setNewLanguage(usrData.language);
 
                     setIsLoadingPosition(true);
 
@@ -110,6 +120,20 @@ const Profile=(props)=>{
         }
 
         setShowEditUsername(false);
+    }
+
+    const changeLanguage=async()=>{
+        const [resp,message]=await updateUserLanguage(newLanguage);
+        
+        if(resp){
+            setUserdata({...userData,language:newLanguage});
+            noticeRef.current.triggerNotice("Language updated!");
+        }else{
+            noticeRef.current.triggerNotice("Update failed");
+            console.log(message);
+        }
+
+        setShowEditLanguage(false);
     }
 
     const filterGames=(games)=>{
@@ -286,69 +310,11 @@ const Profile=(props)=>{
 
                             <div className="text-xs text-white text-opacity-60 font-navbar leading-1">EST. {prettyPrintDate(userData.creationDate.toDate())}</div>
                         </div>
-
-                        {showEditUsername && <input type="text" className="w-[50%] p-1 pl-3 rounded-sm outline-none bg-white bg-opacity-20 font-navbar" value={newUsername} onChange={(e)=>setNewUsername(e.target.value)}/>}
-
-                        {showEditUsername && 
-                        <div className="flex flex-row items-center gap-3">
-                            <div className="flex flex-row items-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 rounded-sm bg-mainBlue" onClick={()=>changeUsername()}>
-                                <i className="fi fi-rr-pen-square leading-[0] text-[8px]"></i>
-                                Save username
-                            </div>
-
-                            <div className="flex flex-row items-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 rounded-sm bg-mainRed" onClick={()=>setShowEditUsername(false)}>
-                                <i className="fi fi-br-cross leading-[0] text-[8px]"></i>
-                                Cancel
-                            </div>
-                        </div>}
                         
                         <div className="flex flex-row gap-3 items-center">
                             <img src={countriesData.find(c=>c.isoCountryCode==userData.country).flags.svg} className="h-[30px] w-[30px] rounded-full object-cover border-2 border-mainBlue"/>
                             <div className="text-white text-sm font-navbar">{countriesData.find(c=>c.isoCountryCode==userData.country).name.toUpperCase()}</div>
                         </div>
-
-                        {showCountryChange && 
-                        <Select
-                            size="lg"
-                            label="Select Country"
-                            labelProps={{className:"text-white"}}
-                            containerProps={{className:"!w-[50%] !min-w-[50%]"}}
-                            menuProps={{className:"!top-[50px] !max-h-[150px]"}}
-                            selected={(element) =>
-                            element &&
-                            cloneElement(element, {
-                                disabled: true,
-                                className:
-                                "flex items-center opacity-100 px-0 gap-2 pointer-events-none text-white text-opacity-70",
-                            })
-                            }
-                            value={newCountry}
-                            onChange={(value)=>setNewCountry(value)}
-                        >
-                            {countriesData.map(({ name, isoCountryCode, flags }) => (
-                            <Option key={name} value={isoCountryCode} className="flex items-center gap-2">
-                                <img
-                                src={flags.svg}
-                                alt={name}
-                                className="h-5 w-5 rounded-full object-cover"
-                                />
-                                {name}
-                            </Option>
-                            ))}
-                        </Select>}
-
-                        {showCountryChange && 
-                        <div className="flex flex-row items-center gap-3">
-                            <div className="flex flex-row items-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 rounded-sm bg-mainBlue" onClick={()=>changeCountry()}>
-                                <i className="fi fi-rr-pen-square leading-[0] text-[8px]"></i>
-                                Save country
-                            </div>
-
-                            <div className="flex flex-row items-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 rounded-sm bg-mainRed" onClick={()=>setShowCountryChange(false)}>
-                                <i className="fi fi-br-cross leading-[0] text-[8px]"></i>
-                                Cancel
-                            </div>
-                        </div>}
 
                         <UserLevel className="items-center" userLv={userData.lv} expValue={userData.exp} userProfileImage={userData.profileImage}
                         username={userData.name} rankingPoints={userData.rankingPoints}/>
@@ -457,17 +423,119 @@ const Profile=(props)=>{
                     {isOpenUserSettings && <>
                             <div className="text-white text-2xl font-default">USER SETTINGS</div>
 
-                            {!showEditUsername && 
-                            <div className="flex flex-row w-[120px] items-center justify-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 rounded-sm bg-mainBlue" onClick={()=>setShowEditUsername(true)}>
+                            {!showEditUsername && <div className="flex flex-row w-[120px] items-center justify-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 rounded-sm bg-mainBlue" onClick={()=>setShowEditUsername(true)}>
                                 <i className="fi fi-rr-pen-square leading-[0] text-[8px]"></i>
                                 Edit username
                             </div>}
 
-                            {!showCountryChange && 
-                            <div className="flex flex-row w-[120px] items-center justify-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 rounded-sm bg-mainBlue" onClick={()=>setShowCountryChange(true)}>
+                            {showEditUsername && <>
+                            <input type="text" className="w-[50%] p-1 pl-3 rounded-sm outline-none bg-white bg-opacity-10 font-navbar" value={newUsername} onChange={(e)=>setNewUsername(e.target.value)}/>
+                            <div className="flex flex-row items-center gap-3">
+                                <div className="flex flex-row items-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 px-2 rounded-sm bg-mainBlue" onClick={()=>changeUsername()}>
+                                    <i className="fi fi-rr-pen-square leading-[0] text-[8px]"></i>
+                                    Save username
+                                </div>
+
+                                <div className="flex flex-row items-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 px-2 rounded-sm bg-mainRed" onClick={()=>setShowEditUsername(false)}>
+                                    <i className="fi fi-br-cross leading-[0] text-[8px]"></i>
+                                    Cancel
+                                </div>
+                            </div></>}
+
+
+
+                            {!showCountryChange && <div className="flex flex-row w-[120px] items-center justify-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 rounded-sm bg-mainBlue" onClick={()=>setShowCountryChange(true)}>
                                 <i className="fi fi-rr-pen-square leading-[0] text-[8px]"></i>
                                 Edit country
                             </div>}
+
+                            {showCountryChange && <>
+                            <Select
+                                size="lg"
+                                label="Select Country"
+                                labelProps={{className:"text-white"}}
+                                containerProps={{className:"!w-[50%] !min-w-[50%]"}}
+                                menuProps={{className:"!top-[50px] !max-h-[150px]"}}
+                                selected={(element) =>
+                                element &&
+                                cloneElement(element, {
+                                    disabled: true,
+                                    className:
+                                    "flex items-center opacity-100 px-0 gap-2 pointer-events-none text-white text-opacity-70",
+                                })
+                                }
+                                value={newCountry}
+                                onChange={(value)=>setNewCountry(value)}
+                            >
+                                {countriesData.map(({ name, isoCountryCode, flags }) => (
+                                <Option key={name} value={isoCountryCode} className="flex items-center gap-2">
+                                    <img
+                                    src={flags.svg}
+                                    alt={name}
+                                    className="h-5 w-5 rounded-full object-cover"
+                                    />
+                                    {name}
+                                </Option>
+                                ))}
+                            </Select>
+
+                            <div className="flex flex-row items-center gap-3">
+                                <div className="flex flex-row items-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 px-2 rounded-sm bg-mainBlue" onClick={()=>changeCountry()}>
+                                    <i className="fi fi-rr-pen-square leading-[0] text-[8px]"></i>
+                                    Save country
+                                </div>
+
+                                <div className="flex flex-row items-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 px-2 rounded-sm bg-mainRed" onClick={()=>setShowCountryChange(false)}>
+                                    <i className="fi fi-br-cross leading-[0] text-[8px]"></i>
+                                    Cancel
+                                </div>
+                            </div></>}
+
+
+
+                            {!showEditLanguage && <div className="flex flex-row w-[120px] items-center justify-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 rounded-sm bg-mainBlue" onClick={()=>setShowEditLanguage(true)}>
+                                <i className="fi fi-rr-pen-square leading-[0] text-[8px]"></i>
+                                Edit language
+                            </div>}
+                                
+                            {showEditLanguage &&<>
+                                <Select 
+                                    size="lg"
+                                    label="Select Language"
+                                    labelProps={{className:"text-white"}}
+                                    containerProps={{className:"!w-[50%] !min-w-[50%]"}}
+                                    menuProps={{className:"!top-[50px] !max-h-[150px]"}}
+                                    selected={(element) =>
+                                        element &&
+                                        cloneElement(element, {
+                                            disabled: true,
+                                            className:
+                                            "flex items-center opacity-100 px-0 gap-2 pointer-events-none text-white text-opacity-70",
+                                        })
+                                    }
+                                    value={newLanguage}
+                                    onChange={(value)=>setNewLanguage(value)}
+                                >
+                                    {languagesData.map(({name, code}) => (
+                                    <Option key={name} value={code} className="flex items-center gap-2">
+                                        {name}
+                                    </Option>
+                                    ))}
+                                </Select>
+
+                                <div className="flex flex-row items-center gap-3">
+                                <div className="flex flex-row items-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 px-2 rounded-sm bg-mainBlue" onClick={()=>changeLanguage()}>
+                                    <i className="fi fi-rr-pen-square leading-[0] text-[8px]"></i>
+                                    Save language
+                                </div>
+
+                                <div className="flex flex-row items-center gap-2 text-white font-navbar text-xs cursor-pointer p-1 px-2 rounded-sm bg-mainRed" onClick={()=>setShowEditLanguage(false)}>
+                                    <i className="fi fi-br-cross leading-[0] text-[8px]"></i>
+                                    Cancel
+                                </div>
+                            </div>
+                            </>}
+
 
                             <button className="bg-mainRed text-white p-1 px-3 font-navbar outline-none rounded-sm" onClick={()=>signOut()}>Sign Out</button>
 
