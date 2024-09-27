@@ -8,6 +8,7 @@ import { calculateAvgAccumulately, calculateCurrentRoundTournament, calculateEst
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 // Your web app's Firebase configuration
+console.log(import.meta.env.VITE_APP_PROVA);
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_APP_FIREBASE_KEY,
   authDomain: "skill-challenge-45a1d.firebaseapp.com",
