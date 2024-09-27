@@ -12,7 +12,7 @@ import Tournament from './pages/Tournament.jsx'
 import Error from './pages/Error.jsx'
 
 createRoot(document.getElementById('root')).render(
-  <BrowserRouter>
+  <BrowserRouter basename='https://mattiacolucci.github.io/skill-challenge'>
       <Routes>
         <Route path="/" element={<App />}/>
         <Route path="/play" element={<PrivateRoute><Play /></PrivateRoute>}/>
