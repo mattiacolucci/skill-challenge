@@ -23,7 +23,7 @@ jobs:
         uses: bahmutov/npm-install@v1
 
       - name: Build project
-        run: vite build
+        run: npm run build
         env:
           VITE_APP_FIREBASE_KEY: ${{ secrets.FIREBASE_KEY }}
 
