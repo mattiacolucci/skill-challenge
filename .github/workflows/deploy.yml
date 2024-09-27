@@ -27,7 +27,7 @@ jobs:
           VITE_APP_PROVA: ${{ secrets.PROVA }}
 
       - name: prova
-        run: echo "VITE_API_URL=$VITE_API_URL"
+        run: echo "VITE_API_URL=$VITE_APP_PROVA"
         env:
           VITE_APP_PROVA: ${{ secrets.PROVA }}
 
