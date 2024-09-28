@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, HashRouter, Route, Routes } from 'react-router-dom'
 import Play from './pages/Play.jsx'
 import Login from './pages/Login.jsx'
 import PrivateRoute from './PrivateRoute.jsx'
@@ -12,7 +12,7 @@ import Tournament from './pages/Tournament.jsx'
 import Error from './pages/Error.jsx'
 
 createRoot(document.getElementById('root')).render(
-  <BrowserRouter>
+  <HashRouter>
       <Routes>
         <Route path="/" element={<App />}/>
         <Route path="/play" element={<PrivateRoute><Play /></PrivateRoute>}/>
@@ -23,5 +23,5 @@ createRoot(document.getElementById('root')).render(
         <Route path='/error' element={<Error/>}/>
         <Route path='/login' element={<Login/>}/>
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
 )
