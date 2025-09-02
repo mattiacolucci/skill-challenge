@@ -27,6 +27,10 @@ const Chronometer=forwardRef((props, ref) => {
         
         getTime(){
             return time;
+        },
+
+        zero(){
+            setTime(0);
         }
     
     }));

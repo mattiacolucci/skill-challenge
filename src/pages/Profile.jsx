@@ -150,11 +150,17 @@ const Profile=(props)=>{
                 continue;
             }
 
-            //if the skill parameter of the gameis different from the selected one, do not add it to the filtered games
+            //if the skill parameter of the game is different from the selected one, do not add it to the filtered games
             const selectedSkillsParameters=skills[lastGamesSelectedSkill].skillParametersPossibleValues[lastGamesSelectedParameters];
             if(games[i].skillParameters!=skillParametersJoinPrint(selectedSkillsParameters)){
                 addGame=false;
                 continue;
+            }
+
+            //Set the metrics to each result parameter of the game
+            games[i].metrics={};
+            for(var r=0; r<skills[lastGamesSelectedSkill].skillResultsParameters.length;r++){
+                games[i].metrics[skills[lastGamesSelectedSkill].skillResultsParameters[r]]=skills[lastGamesSelectedSkill].skillResultsParametersMetrics[r];
             }
 
             if(addGame){
@@ -186,11 +192,11 @@ const Profile=(props)=>{
         }
 
         for(var i in resultsParameters){
-            const copyOfGamesFiltered=gamesAlreadyFiltered.map(g=>g);
+            const pesonalBestGame = gamesAlreadyFiltered.filter(g=>g.isPersonalBest[resultsParameters[i]]==true);
             personalBests[resultsParameters[i]]={
-                value:copyOfGamesFiltered.sort((a,b)=>a[resultsParameters[i]]-b[resultsParameters[i]])[0][resultsParameters[i]],
-                date:new Date(copyOfGamesFiltered.sort((a,b)=>a[resultsParameters[i]]-b[resultsParameters[i]])[0].date.toDate())
-            };
+                value: pesonalBestGame[0][resultsParameters[i]],
+                date: new Date(pesonalBestGame[0].date.toDate())
+            }
         }
 
         setFilteredPersonalBests(personalBests);
@@ -403,11 +409,11 @@ const Profile=(props)=>{
 
                             
                             <div className="flex flex-col gap-[6px] mt-2">
-                                {Object.keys(filteredPersonalBests).map((param)=>{
+                                {Object.keys(filteredPersonalBests).map((param,i)=>{
                                     return(
                                         <div className="flex flex-row items-center gap-4" key={"pesronal"+param}>
                                             <div className="text-white text-opacity-75 bg-tooltipColor rounded-sm p-1 px-2 text-sm font-navbar min-w-[100px]">{prettyPrintParameter(param)}</div>
-                                            <div className="text-white text-opacity-70 text-sm min-w-[55px] text-center bg-white bg-opacity-5 p-1 px-2 rounded-sm">{filteredPersonalBests[param].value}</div>
+                                            <div className="text-white text-opacity-70 text-sm min-w-[55px] text-center bg-white bg-opacity-5 p-1 px-2 rounded-sm">{filteredPersonalBests[param].value+" "+skills[lastGamesSelectedSkill].skillResultsParametersMetrics[i]}</div>
                                             <div className="text-white text-opacity-70 text-xs">{prettyPrintDate(filteredPersonalBests[param].date)}</div>
                                         </div>
                                     )

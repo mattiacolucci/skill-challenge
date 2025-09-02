@@ -31,7 +31,7 @@ const Tournaments=(props)=>{
         }
 
         fetchTournaments();
-    },[])
+    },[selectedSkill])  //every time the selected skill changes, fetch tournaments of that skill
 
     const changeSelectedSkill=(skillNew)=>{
         setIsLoading(true);
@@ -529,7 +529,8 @@ const Tournaments=(props)=>{
                                                 
                                                 {[0,1].map((user)=>{
                                                     return(<>
-                                                        <div className={"text-white font-default w-[100px] text-center "+((tournaments[selectedSkill][selectedTournamentDetail].userNextGame.duels[skillParametersJoinPrint(param)]?.winner!=user)?"text-opacity-50":"")}>
+                                                        <div className={"text-white font-default w-[100px] text-center "+
+                                                            ((tournaments[selectedSkill][selectedTournamentDetail].userNextGame.duels[skillParametersJoinPrint(param)]?.winner!=undefined && tournaments[selectedSkill][selectedTournamentDetail].userNextGame.duels[skillParametersJoinPrint(param)].winner!=user)?"text-opacity-50":"")}>
                                                             {//print "-" if the duel related to these params, has not been played by the user. If it has been played, print the performanceparameter value obtained
                                                             //by the user in this duel
                                                             tournaments[selectedSkill][selectedTournamentDetail].userNextGame.duels[skillParametersJoinPrint(param)]==undefined?

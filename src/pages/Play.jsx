@@ -5,11 +5,14 @@ import { skills } from "../assets/data";
 import FastTyping from "../components/skills/FastTyping";
 import { getSkillLeaderboard, getUserData, getUserPersonalBest } from "../firebase";
 import Loading from "../components/Loading";
+import ReactiveClock from "../components/skills/RectiveClock";
+import { useNavigate } from "react-router-dom";
 
 
 const Play=(props)=>{
     const playScreenRef=useRef();
     const playCountDownRef=useRef();
+    const navigate=useNavigate();
     const [selectionState,setSelectionState]=useState(0);
     const [selectedSkill,setSelectedSkill]=useState((props.skill==undefined)?-1:props.skill);  //-1 if not passed a specific value
     const [skillsParameters,setSkillsParameters]=useState((props.parameters==undefined)?0:props.parameters);  //0 if not passed a specific value
@@ -168,7 +171,7 @@ const Play=(props)=>{
                             {skills[selectedSkill].skillParametersPossibleValues.map((skillParams,paramsIndex)=>{
                                 return(
                                     <div className="flex flex-col items-center" key={"param"+paramsIndex}>
-                                        <div className={"flex flex-row items-center gap-3 p-2 px-3 glass-effect rounded-md cursor-pointer "+(skillsParameters==paramsIndex?"border-2 border-mainBlue":"")} onClick={()=>setSkillsParameters(paramsIndex)}>
+                                        <div className={"flex flex-row items-center gap-3 p-2 px-3 glass-effect rounded-md cursor-pointer border-mainBlue transition-all "+(skillsParameters==paramsIndex?"border-2":"border-0")} onClick={()=>setSkillsParameters(paramsIndex)}>
                                             {skillParams.map((p,index)=>{
                                                 return(<>
                                                     <div className="flex flex-col gap-2 items-center">
@@ -227,6 +230,14 @@ const Play=(props)=>{
                     are passed too*/}
                     {selectedSkill==0 && 
                     <FastTyping 
+                        skillParameters={skillsParameters} 
+                        user={userData} 
+                        records={records}
+                        tournament={props.tournament}
+                    />}
+
+                    {selectedSkill==1 && 
+                    <ReactiveClock 
                         skillParameters={skillsParameters} 
                         user={userData} 
                         records={records}

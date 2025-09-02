@@ -153,7 +153,7 @@ const getUserPersonalBest=async(uidUser, skill, skillParameters, resultParameter
     try{
         const personalBest=await getDocs(
             query(collection(db,"games"),where("skillParameters","==",skillParametersJoinPrint(skills[skill].skillParametersPossibleValues[skillParameters])),
-            where("skill","==",skills[skill].title),where("user","==",uidUser),orderBy(resultParameter),limit(1))
+            where("skill","==",skills[skill].title),where("user","==",uidUser),where("isPersonalBest."+resultParameter,"==",true),limit(1))
         );
 
         const pb=(!personalBest.empty)?

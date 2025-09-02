@@ -386,6 +386,8 @@ const Leaderboard=(props)=>{
                                     currentLeaderboard.user.map((user,index)=>{
                                         const value = currentLeaderboard.record[index];
                                         const userData = leaderboardUsers.filter(u=>u.id==user)[0];
+                                        const resultParameterIndex = skills[searchedLeaderboard.skill].skillResultsParameters.indexOf(skillResultParameter);
+                                        const metric = skills[searchedLeaderboard.skill].skillResultsParametersMetrics[resultParameterIndex];
 
                                         return(
                                             <div className="w-full flex flex-row bg-white bg-opacity-20 items-center justify-center gap-2 p-1 px-3 rounded-md" key={userData.username+" "+skillResultParameter}>
@@ -402,7 +404,7 @@ const Leaderboard=(props)=>{
                                                     <div className="text-[9px] w-[20px] h-[20px] text-center leading-[20px] rounded-sm bg-yellow-gold bg-opacity-50">
                                                         {searchedLeaderboard.type}
                                                     </div>}
-                                                    <div className="text-white text-right text-opacity-80 font-default">{value}</div>
+                                                    <div className="text-white text-right text-opacity-80 font-default">{value.toFixed(3)+" "+metric}</div>
                                                 </div>
                                             </div>
                                         )

@@ -103,7 +103,7 @@ const TooltipChartCustom=(props)=>{
             {props.payload.map(v => 
                 <p style={{color:v.color,opacity:0.8}}>
                     <span className="font-navbar font-semibold">{prettyPrintParameter(v.dataKey)+":"}</span>
-                    <span className="opacity-70">{" "+v.value}</span>
+                    <span className="opacity-70">{" "+v.value+" "+v.payload.metrics[v.dataKey]}</span>
                 </p>)
             }
             <div className="text-[10px] text-white text-opacity-65 font-navbar font-semibold">{(props.payload.length!=0)?prettyPrintDate(props.payload[0].payload.date.toDate()):""}</div>
