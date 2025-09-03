@@ -5,7 +5,7 @@ import { skills } from "../../assets/data";
 import Chronometer from "../Chronometer";
 import UserLevel from "../UserLevel";
 import { Line, LineChart, XAxis, YAxis } from "recharts";
-import { calculateEarnedExpSkill, skillParametersJoinPrint } from "../../utility";
+import { calculateEarnedExpSkill, prettyPrintParameter, skillParametersJoinPrint } from "../../utility";
 import { calculateNewRankingPoints, storeGameResult } from "../../firebase";
 
 const ReactiveClock=(props)=>{
@@ -21,21 +21,6 @@ const ReactiveClock=(props)=>{
     const [rankingPoints,setRankingPoints]=useState(props.user.rankingPoints);   //ranking points
     const [earnedRankingPoints,setEarnedRankingPoints]=useState(0);  //represents earned ranking points
     const [earnedRankingPointsString,setEarnedRankingPointsString]=useState("");  //represents earned ranking points string
-    
-    //personal bests
-    const personalBestCircle=props.records.PB.fastestCircle.record;  //personal best fastest circle in sec
-    const personalBestTotTime=props.records.PB.totTime.record;   //personal best tot time in sec
-    const personalBestAvgTime=props.records.PB.avgTime.record  //personal best avg time in sec
-
-    //national bests
-    const nationalBestCircle=props.records.NR.fastestCircle.record;
-    const nationalBestTotTime=props.records.NR.totTime.record;
-    const nationalBestAvgTime=props.records.NR.avgTime.record;
-
-    //world bests
-    const worldBestCircle=props.records.WR.fastestCircle.record;
-    const worldBestTotTime=props.records.WR.totTime.record;
-    const worldBestAvgTime=props.records.WR.avgTime.record;
 
     //params
     const skillIndex=1; //index of the skill in the skills array
@@ -57,18 +42,24 @@ const ReactiveClock=(props)=>{
     const [showCircle,setShowCircle] = useState(false); //true if the circle has to be shown
     const [results,setResults]=useState({});  //will contains the results of the game in terms of records
     const [dataChart,setDataChart]=useState();  //data to be displayed in the result chart
+    const [showCircleResult,setShowCircleResult]=useState(-1); //indicates the circle for which the time needs to be shown in the graph once the user over it
     const screenRef = useRef();
     const resultsRef=useRef();
 
     const generateRandomCircle=()=>{
-        const screenH = screenRef.current.offsetHeight;
-        const screenW = screenRef.current.offsetWidth;
-        const randX = Math.floor(Math.random() * (screenW - circleDiameter/2)) + circleDiameter/2;
-        const randY = Math.floor(Math.random() * (screenH - circleDiameter/2)) + circleDiameter/2;
+        const screenH = screenRef.current.getBoundingClientRect().height;
+        const screenW = screenRef.current.getBoundingClientRect().width;
+        const maxX = screenW - circleDiameter;
+        const minX = 0;
+        const maxY = screenH - circleDiameter;
+        const minY = 0;
+
+        const randX = Math.floor(Math.random() * (maxX - minX) + minX);
+        const randY = Math.floor(Math.random() * (maxY - minY) + minY);
 
         setCircles(currentCircles => {   //this set state is done to avoid the problem that if i copy the state as circlesCopy = structuredClone(circles) the circles state may not be the updated one, and this may cause problems in case of sequential updates pf circles
             const circlesCopy = structuredClone(currentCircles);
-            circlesCopy.push({x: randX, y: randY, id: circlesCopy.length, reactionTime:null});
+            circlesCopy.push({x: (randX/screenW*100).toFixed(0)+"%", y: (randY/screenH*100).toFixed(0)+"%", id: circlesCopy.length, reactionTime:null});
             return circlesCopy;
         });
     }
@@ -115,13 +106,21 @@ const ReactiveClock=(props)=>{
             circlesCopy[circlesCopy.length-1].reactionTime = reactionTime;
             return circlesCopy;
         });
+
         //generate new circle if the number of circles that needs to be displayed has not been reached
         if(circles.length<num_clicks){
             setTimeout(newCircle,1000);
-        }else{  //game ended
-            calcolateResults();
         }
     }
+
+    //check game end
+    useEffect(()=>{
+        //if all circles have been clicked and all of them have a reaction time set, so have been clicked
+        if(circles.length>=num_clicks && circles.map(c=>c.reactionTime).filter(r=>r==null).length==0){
+            //game ended
+            calcolateResults();
+        }
+    },[circles]);
 
     const calcolateResults=()=>{  //calculate results of the game
         //calculate total time, avg time and fastest circle
@@ -133,30 +132,29 @@ const ReactiveClock=(props)=>{
         //the chart will display all the reaction times of each circle
         setDataChart(circles.map((c,i)=>{return {id:(i+1),time:c.reactionTime}}));
 
-        //if a record is null it means it has not been already set, so set the distance between actual time and record
-        //equals to null
         const res={
-            totalTime:totalTime,
+            totTime:totalTime,
             avgTime:avgTime,
             fastestCircle:fastestCircle,
             distancesFromRecords:{
-                "WR":{
-                    totTime:(worldBestTotTime!=null)?totalTime-worldBestTotTime:null,
-                    avgTime:(worldBestAvgTime!=null)?avgTime-worldBestAvgTime:null,
-                    fastestCircle:(worldBestCircle!=null)?fastestCircle-worldBestCircle:null
-                },
-                "NR":{
-                    totTime:(nationalBestTotTime!=null)?totalTime-nationalBestTotTime:null,
-                    avgTime:(nationalBestAvgTime!=null)?avgTime-nationalBestAvgTime:null,
-                    fastestCircle:(nationalBestCircle!=null)?fastestCircle-nationalBestCircle:null
-                },
-                "PB":{
-                    totTime:(personalBestTotTime!=null)?totalTime-personalBestTotTime:null,
-                    avgTime:(personalBestAvgTime!=null)?avgTime-personalBestAvgTime:null,
-                    fastestCircle:(personalBestCircle!=null)?fastestCircle-personalBestCircle:null
-                }
+                "WR":{},
+                "NR":{},
+                "PB":{}
             }
         };
+        
+        //set the istance record for each result parameter and for each of PB, NR, WR
+        //if a record is null it means it has not been already set, so set the distance between actual time and record
+        //equals to null
+        for (const param of skills[skillIndex].skillResultsParameters){
+            for (const rec of ["PB","NR","WR"]){
+                if(props.records[rec][param].record!=null){
+                    res.distancesFromRecords[rec][param]=res[param]-props.records[rec][param].record;
+                }else{
+                    res.distancesFromRecords[rec][param]=null;
+                }
+            }
+        }
 
         setResults(res);
 
@@ -190,6 +188,7 @@ const ReactiveClock=(props)=>{
             }*/
 
             resultsRef.current.scrollIntoView({behavior: "smooth", block: "start", inline: "nearest"});
+            setShowResults(true);
         }else{
             console.log(newRankingPoints);
         }
@@ -208,6 +207,16 @@ const ReactiveClock=(props)=>{
         },2000);
     }
 
+    const ciclesClicked = <div className="flex gap-4">
+        {circles.map((circle,index)=>{
+            return <>{circle.reactionTime!=null && <div className="basis-[10%] flex flex-col items-center justify-start gap-2 border-r-2 pr-4 border-white animate-fadeUp" key={index}>
+                <div className={"font-navbar text-base "+((index>6)?"text-white text-opacity-70":"text-blueOverBg")}>{"Circle "+(index+1)}</div>
+                <div className={"w-10 h-10 rounded-[50%] "+((index>6)?"bg-white opacity-70":"bg-blueOverBg")}></div>
+                {circle.reactionTime!=null && <div className="font-navbar text-white text-base">{circle.reactionTime.toFixed(3)+"s"}</div>}
+            </div>}</>
+        })}
+    </div>;
+
     if(isLoading){
         return <Loading/>;
     }else{
@@ -218,30 +227,25 @@ const ReactiveClock=(props)=>{
         <div className="relative h-[100vh] w-screen flex flex-col items-center justify-center overflow-hidden gap-4 bg-red-600">
 
             <div className="relative w-screen flex-1 bg-green-500" ref={screenRef}>
-                {showCircle && <div style={{width:circleDiameter/2+"px",height:circleDiameter/2+"px",left:circles[circles.length-1].x,top:circles[circles.length-1].y}} className="absolute bg-blue-600 rounded-[50%] animate-popUp cursor-pointer" onClick={()=>handleClick()}></div>}
+                {showCircle && <div style={{width:circleDiameter/2+"px",height:circleDiameter/2+"px",left:circles[circles.length-1].x,top:circles[circles.length-1].y}} className="absolute bg-blue-600 rounded-[50%] animate-popUpFast cursor-pointer origin-center" onClick={()=>handleClick()}></div>}
             </div>
 
             <div className="relative w-screen flex flex-col gap-3 select-none p-4">
                 <div className="flex flex-row gap-3 items-center">
                     <Chronometer ref={chronometerRef}/>
                     {//if the game is ended display the continue button
-                    gameEnded && <button className="text-base px-3 py-2 ml-auto bg-blue-700 self-end rounded-sm mt-auto" onClick={()=>goResults()}>CONTINUE ➣</button>}
+                    gameEnded && <button className="text-base text-white px-3 py-2 ml-auto bg-blue-700 self-end rounded-sm mt-auto" onClick={()=>goResults()}>CONTINUE ➣</button>}
                 </div>
-                <div className="flex gap-4">
-                    {circles.map((circle,index)=>{
-                        return <div className="flex flex-col items-center justify-start gap-2 border-r-2 pr-4 border-white" key={index}>
-                            <div className="font-navbar text-white text-base">{"Circle "+(index+1)}</div>
-                            <div className="w-10 h-10 rounded-[50%] bg-white opacity-75 "></div>
-                            {circle.reactionTime!=null && <div className="font-navbar text-white text-base">{circle.reactionTime.toFixed(3)+"s"}</div>}
-                        </div>
-                    })}
-                </div>
+                
+                {//show circles clicked and their reaction times
+                    ciclesClicked
+                }
             </div>
         </div>
         
         {/*game results*/}
         <div className="w-screen h-[100vh] bg-resultsBg text-white font-navbar font-semibold flex flex-col gap-5" ref={resultsRef}>
-            {gameEnded && <>
+            {gameEnded && showResults && <>
                 <div className="w-screen flex flex-row items-center mt-5">
 
                     <UserLevel className="basis-[33%] self-end pl-7" userLv={userLv} expValue={expValue} userProfileImage={userProfileImage}
@@ -256,14 +260,85 @@ const ReactiveClock=(props)=>{
                 </div>
 
                 <div className="h-min w-screen flex flex-row items-center">
-                    <div className="h-full w-[calc(100vw/2-225px)] flex flex-col items-center justify-center gap-6">
-                        <div className="text-white text-xl">CLICKS CHART</div>
+                    <div className="h-[60vh] w-[calc(100vw/2-225px)] flex flex-col items-center justify-center gap-6">
+                        <div className="text-white text-xl mt-3">CLICKS CHART</div>
                         <LineChart width={300} height={150} data={dataChart} margin={{bottom:10,right:10}} title="Clicks Chart" style={{alignSelf:"center"}}>
-                            <XAxis minTickGap={10} dataKey="id" interval={"equidistantPreserveStartEnd"} label={{ value: 'Id', angle: 0, position: 'insideBottomRight', offset:-7, fontSize:"12px"}} style={{ fontSize: '12px'}}/>
+                            <XAxis minTickGap={10} dataKey="id" interval={"equidistantPreserveStartEnd"} label={{ value: 'Circle #', angle: 0, position: 'insideBottomRight', offset:-7, fontSize:"12px"}} style={{ fontSize: '12px'}}/>
                             <YAxis minTickGap={8} interval={"equidistantPreserveStartEnd"} label={{ value: 'Time (s)', angle: -90, fontSize:"10px", position:'insideBottom', offset:55}} style={{ fontSize: '12px'}}/>
                             <Line type="monotone" dataKey="time" stroke="#1c158f" dot={false} label={false} strokeWidth={1.5}/>
                         </LineChart>
+                        <div className="text-white text-xl">CLICKS GRAPH</div>
+                        <div className="relative flex-1 aspect-video glass-effect">
+                            {circles.map((circle,index)=>{
+                                return <div key={circle.id} style={{left:circle.x,top:circle.y}} onMouseOver={()=>setShowCircleResult(index)} onMouseOut={()=>setShowCircleResult(-1)} className="absolute w-5 h-5 bg-blue-600 rounded-[50%] animate-popUp flex items-center justify-center cursor-pointer">
+                                        <div className="text-[7px]">{index}</div>
+                                    </div>
+                            })}
+
+                            {showCircleResult!=-1 && 
+                                <div style={{left:circles[showCircleResult].x,top:(parseInt(circles[showCircleResult].y.replace("%",""))+15)+"%"}} className="absolute p-2 bg-darkBlue rounded-md text-sm font-navbar animate-fadeUp">
+                                    {circles[showCircleResult].reactionTime+"s"}    
+                                </div>
+                            }
+                        </div>
                     </div>
+
+                    <div className="h-max w-[450px] flex flex-col gap-1 bg-white bg-opacity-10 rounded-md px-3 py-1 pb-0 origin-center flex-none z-[2]">
+                        
+                        {/*Show the records distance for each result parameter*/}
+                        {skills[skillIndex].skillResultsParameters.map((param,index)=>{
+                            return(
+                                <div className={"w-full flex flex-row p-2 pb-4 items-center "+(index<skills[skillIndex].skillResultsParameters.length-1?"border-b-2 border-white":"")} key={index}>
+                                    <div className="flex flex-col basis-[50%] gap-1">
+                                        <div className="text-xs font-normal">{prettyPrintParameter(param)}</div>
+                                        <div className="text-xl self-center">{results[param].toFixed(3)+"s"}</div>
+                                    </div>
+                                    <div className="h-full flex flex-col basis-[50%] items-center border-l-2 border-white border-opacity-30 px-3">
+                                        {[["PB","Personal Best"],["NR","National Record"],["WR","World record"]].map((rec,idx)=>{
+                                            const recType=rec[0];
+                                            const recString=rec[1];
+                                            var bgString="";
+
+                                            switch(recType){
+                                                case "PB":
+                                                    bgString="bg-blueOverBg bg-opacity-50";
+                                                    break;
+                                                case "NR":
+                                                    bgString="bg-yellow-gold bg-opacity-50";
+                                                    break;
+                                                case "WR":
+                                                    bgString="bg-yellow-gold bg-opacity-65";
+                                                    break;
+                                            }
+
+                                            return <>{props.records[recType][param].record!=null && <div className="w-full flex flex-row justify-center items-center gap-2">
+                                                <div className={"text-[9px] w-[20px] h-[20px] text-center leading-[20px] rounded-sm "+bgString} title={recString}>{recType}</div>
+                                                <div className="text-base">{props.records[recType][param].record.toFixed(3)+"s"}</div>
+                                                <div className={"text-[10px] "+((results.distancesFromRecords[recType][param]>0)?"text-yellow-gold":"text-mainGreen")}>
+                                                    {(results.distancesFromRecords[recType][param]!=null)?("("+((results.distancesFromRecords[recType][param]>0)?"+":"")+results.distancesFromRecords[recType][param].toFixed(3)+"s)"):""}
+                                                </div>
+                                            </div>}</>
+
+                                        })}
+                                    </div>
+                            </div>
+                            )
+                        })}
+                    </div>
+
+                    {/*Records badges*/}
+                    <div className="h-full flex flex-col justify-center animate-record opacity-0 z-0 gap-[65px]">
+                        {skills[skillIndex].skillResultsParameters.map((param,index)=>{
+                            return (
+                            <div className={"text-base w-[250px] text-nowrap px-3 py-[6px] text-black WR-clip-path "+
+                                ((results.distancesFromRecords.WR[param]<0 || results.distancesFromRecords.WR[param]==null)?"bg-yellow-gold":((results.distancesFromRecords.NR[param]<0 || results.distancesFromRecords.NR[param]==null)?"bg-yellow-gold bg-opacity-80":((results.distancesFromRecords.PB[param]<0 || results.distancesFromRecords.PB[param]==null)?"bg-blueOverBg bg-opacity-70":"")))}
+                            >{((results.distancesFromRecords.WR[param]<0 || results.distancesFromRecords.WR[param]==null)?"NEW WORLD RECORD":((results.distancesFromRecords.NR[param]<0 || results.distancesFromRecords.NR[param]==null)?"NEW NATIONAL RECORD":((results.distancesFromRecords.PB[param]<0 || results.distancesFromRecords.PB[param]==null)?"NEW PERSONAL BEST":"")))}</div>)
+                        })}
+                    </div>
+                </div>
+
+                <div className="mt-auto mb-4">
+                    {ciclesClicked}    
                 </div>
                 </>
             }

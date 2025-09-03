@@ -74,6 +74,7 @@ export default withMT({
         fadeDown: 'fadeDown 0.8s ease-in-out forwards',
         fadeLeft: 'fadeLeft 0.8s ease-in-out forwards',
         popUp: 'popUp 0.8s ease-in-out forwards',
+        popUpFast: 'popUp 0.3s ease-in-out forwards',
         notice: 'notice 4s ease-in-out forwards',
         rotation: 'rotation 2s infinite linear',
         deleteAccount: 'deleteAccount 2s infinite linear'

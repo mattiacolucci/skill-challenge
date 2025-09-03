@@ -17,9 +17,9 @@ createRoot(document.getElementById('root')).render(
       <Routes>
         <Route path="/" element={<App />}/>
         <Route path='/test' element={<ReactiveClock user={{language:"en",username:"test",photoURL:"",exp:0,lv:1,rankingPoints:0}} skillParameters={0} records={{
-            PB: {fastestCircle:{record:1}, totTime:{record:1}, avgTime:{record:1}},
-            NR: {fastestCircle:{record:1}, totTime:{record:1}, avgTime:{record:1}},
-            WR: {fastestCircle:{record:1}, totTime:{record:1}, avgTime:{record:1}}
+            PB: {fastestCircle:{record:10}, totTime:{record:10}, avgTime:{record:10}},
+            NR: {fastestCircle:{record:10}, totTime:{record:10}, avgTime:{record:10}},
+            WR: {fastestCircle:{record:10}, totTime:{record:10}, avgTime:{record:10}}
         }} />}/>
         <Route path="/play" element={<PrivateRoute><Play /></PrivateRoute>}/>
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>}/>
