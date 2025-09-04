@@ -19,13 +19,13 @@ const calculateEarnedExpSkill=(skill,skillParameters,level,results,exp)=>{
             //the division 0.5/avgTime is 1 if avgTime is 0.5; more avgTime is high, more the division->0
             //this way the less is avgTime, the more exp it will earned
             //if avgTime is 0.5 it will be earned 1500 exp
-            const avgTimeEarnedExp=Math.round(1500*(0.5/results.avgTime));
+            var avgTimeEarnedExp=Math.round(1500*(0.5/results.avgTime));
             expString+="Avg Time: +"+avgTimeEarnedExp+" exp";
             exp+=avgTimeEarnedExp;
 
             //this works as the previous formula. The less is the time of the fastestWord and the more exp it will be taken
             //if fastest word is 0.4s it will be earned 1000 exp
-            const fastestWordEarnedExp=Math.round(1000*(0.4/results.fastestWord.time));
+            var fastestWordEarnedExp=Math.round(1000*(0.4/results.fastestWord.time));
             expString+="\nFastest Word: +"+fastestWordEarnedExp+" exp";
             exp+=fastestWordEarnedExp;
             
@@ -37,7 +37,26 @@ const calculateEarnedExpSkill=(skill,skillParameters,level,results,exp)=>{
                 expString+="\nBonus: +"+bonusExp+" exp";
                 exp+=bonusExp;   
             }
+            break;
+        case "REACTIVE CLICK":
+            var avgTimeEarnedExp=Math.round(1500*(0.6/results.avgTime));
+            expString+="Avg Time: +"+avgTimeEarnedExp+" exp";
+            exp+=avgTimeEarnedExp;
+
+            //this works as the previous formula. The less is the time of the fastestWord and the more exp it will be taken
+            //if fastest circle is 0.4s it will be earned 1000 exp
+            var fastestCircleEarnedExp=Math.round(1000*(0.5/results.fastestCicle));
+            expString+="\nFastest Circle: +"+fastestCircleEarnedExp+" exp";
+            exp+=fastestCircleEarnedExp;
             
+            //bonus exp based on how much words and chars have been used during the skill
+            //the bonus is donated only if 500 earned exp are reached. If there are reached less the bonus is not assigned
+            //since the player has done a bad performance
+            if(exp-oldExp>=500){
+                const bonusExp=skillParameters[0]*20;  //20 exp is assigned per each click
+                expString+="\nBonus: +"+bonusExp+" exp";
+                exp+=bonusExp;   
+            }
             break;
         default: 
             break;

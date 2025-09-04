@@ -10,16 +10,16 @@ import Leaderboard from './pages/Leaderboard.jsx'
 import Tournaments from './pages/Tournaments.jsx'
 import Tournament from './pages/Tournament.jsx'
 import Error from './pages/Error.jsx'
-import ReactiveClock from './components/skills/RectiveClock.jsx'
+import ReactiveClock from './components/skills/RectiveClick.jsx'
 
 createRoot(document.getElementById('root')).render(
   <HashRouter>
       <Routes>
         <Route path="/" element={<App />}/>
         <Route path='/test' element={<ReactiveClock user={{language:"en",username:"test",photoURL:"",exp:0,lv:1,rankingPoints:0}} skillParameters={0} records={{
-            PB: {fastestCircle:{record:10}, totTime:{record:10}, avgTime:{record:10}},
-            NR: {fastestCircle:{record:10}, totTime:{record:10}, avgTime:{record:10}},
-            WR: {fastestCircle:{record:10}, totTime:{record:10}, avgTime:{record:10}}
+            PB: {fastestCircle:{record:0.1}, totTime:{record:0.1}, avgTime:{record:0.1}},
+            NR: {fastestCircle:{record:0.1}, totTime:{record:0.1}, avgTime:{record:0.1}},
+            WR: {fastestCircle:{record:0.1}, totTime:{record:0.1}, avgTime:{record:0.1}}
         }} />}/>
         <Route path="/play" element={<PrivateRoute><Play /></PrivateRoute>}/>
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>}/>

@@ -8,7 +8,7 @@ import { Line, LineChart, XAxis, YAxis } from "recharts";
 import { calculateEarnedExpSkill, prettyPrintParameter, skillParametersJoinPrint } from "../../utility";
 import { calculateNewRankingPoints, storeGameResult } from "../../firebase";
 
-const ReactiveClock=(props)=>{
+const ReactiveClick=(props)=>{
 
     //user settings
     const username=props.user.username;
@@ -24,7 +24,7 @@ const ReactiveClock=(props)=>{
 
     //params
     const skillIndex=1; //index of the skill in the skills array
-    const skillName="REACTIVE CLOCK";
+    const skillName="REACTIVE CLICK";
     const skillParameters=skills[skillIndex].skillParametersPossibleValues[props.skillParameters];
     const num_clicks=skillParameters[0];
 
@@ -172,8 +172,8 @@ const ReactiveClock=(props)=>{
             //store result on db
             setIsSoftLoading(true);
 
-            /*const [resp,message]=await storeGameResult({
-                skill:skillName, user:props.user.uid, totTime:parseFloat(results.totalTime.toFixed(3)),
+            const [resp,message]=await storeGameResult({
+                skill:skillName, user:props.user.uid, totTime:parseFloat(results.totTime.toFixed(3)),
                 avgTime:parseFloat(results.avgTime.toFixed(3)), fastestCircle:parseFloat(results.fastestCircle.toFixed(3)), 
                 date: new Date(), skillParameters:skillParametersJoinPrint(skillParameters)
             },skillIndex,props.skillParameters,props.records,results.distancesFromRecords,newLevel,newExp,newRankingPoints,props.tournament);
@@ -185,10 +185,7 @@ const ReactiveClock=(props)=>{
                 setShowResults(true);
             }else{
                 console.log(message);
-            }*/
-
-            resultsRef.current.scrollIntoView({behavior: "smooth", block: "start", inline: "nearest"});
-            setShowResults(true);
+            }
         }else{
             console.log(newRankingPoints);
         }
@@ -224,9 +221,9 @@ const ReactiveClock=(props)=>{
         <div className={"relative h-[200vh]"}>
 
 
-        <div className="relative h-[100vh] w-screen flex flex-col items-center justify-center overflow-hidden gap-4 bg-red-600">
+        <div className="relative h-[100vh] w-screen flex flex-col items-center justify-center overflow-hidden gap-4">
 
-            <div className="relative w-screen flex-1 bg-green-500" ref={screenRef}>
+            <div className="relative w-screen flex-1" ref={screenRef}>
                 {showCircle && <div style={{width:circleDiameter/2+"px",height:circleDiameter/2+"px",left:circles[circles.length-1].x,top:circles[circles.length-1].y}} className="absolute bg-blue-600 rounded-[50%] animate-popUpFast cursor-pointer origin-center" onClick={()=>handleClick()}></div>}
             </div>
 
@@ -276,7 +273,7 @@ const ReactiveClock=(props)=>{
                             })}
 
                             {showCircleResult!=-1 && 
-                                <div style={{left:circles[showCircleResult].x,top:(parseInt(circles[showCircleResult].y.replace("%",""))+15)+"%"}} className="absolute p-2 bg-darkBlue rounded-md text-sm font-navbar animate-fadeUp">
+                                <div style={{left:circles[showCircleResult].x,top:(parseInt(circles[showCircleResult].y.replace("%",""))+20)+"%"}} className="absolute p-2 bg-darkBlue rounded-md text-sm font-navbar animate-fadeUp">
                                     {circles[showCircleResult].reactionTime+"s"}    
                                 </div>
                             }
@@ -351,4 +348,4 @@ const ReactiveClock=(props)=>{
     }
 }
 
-export default ReactiveClock;
+export default ReactiveClick;

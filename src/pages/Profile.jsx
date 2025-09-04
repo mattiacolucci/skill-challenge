@@ -340,13 +340,13 @@ const Profile=(props)=>{
                                             const recordParameterNameWithSpaces=prettyPrintParameter(record.recordParameter);
 
                                             return (
-                                            <div className="flex flex-row items-center gap-2 ml-2" key={"record"+index} title={skill+" "+record.recordType+" in "+recordParameterNameWithSpaces}>
+                                            <div className="flex flex-row items-center gap-2 ml-2" key={"record"+index+skill} title={skill+" "+record.recordType+" in "+recordParameterNameWithSpaces}>
                                                 <div className={"text-[9px] w-[20px] h-[20px] text-center leading-[20px] "+((record.recordType=="PB")?"bg-blueOverBg bg-opacity-50":((record.recordType=="NR")?"bg-yellow-gold bg-opacity-50":"bg-yellow-gold bg-opacity-65"))}>
                                                     {record.recordType}
                                                 </div>
 
-                                                {record.skillParameters.map((param)=>{
-                                                    return <div className="w-[18px] h-[18px] leading-[18px] text-[8px] text-center bg-blue-gray-800" title={Object.keys(param)[0]}>{Object.values(param)[0]}</div>
+                                                {record.skillParameters.map((param,paramIndex)=>{
+                                                    return <div key={paramIndex+index+skill} className="w-[18px] h-[18px] leading-[18px] text-[8px] text-center bg-blue-gray-800" title={Object.keys(param)[0]}>{Object.values(param)[0]}</div>
                                                 })}
 
                                                 <div className="text-white text-[9px]">{record.value}</div>
@@ -393,7 +393,7 @@ const Profile=(props)=>{
                                     <Tooltip cursor={{stroke: "#BABABA",strokeWidth: 1,strokeDasharray: "5 5"}} wrapperStyle={{ outline: "none" }} content={(params)=>TooltipChartCustom(params)} />
                                     <Legend iconSize={10} formatter={(value, entry, index) => <span className="text-xs font-navbar opacity-75">{prettyPrintParameter(value)}</span>}/>
                                     {skills[lastGamesSelectedSkill].skillResultsParameters.map((param,index)=>{
-                                        return <Line type="monotone" dataKey={param} stroke={lineChartColors[index]} strokeWidth={1.5}/>
+                                        return <Line type="monotone" dataKey={param} key={param+"chart"} stroke={lineChartColors[index]} strokeWidth={1.5}/>
                                     })}
                                 </LineChart>}
                                 
@@ -474,7 +474,7 @@ const Profile=(props)=>{
                                 onChange={(value)=>setNewCountry(value)}
                             >
                                 {countriesData.map(({ name, isoCountryCode, flags }) => (
-                                <Option key={name} value={isoCountryCode} className="flex items-center gap-2">
+                                <Option key={name+"country"} value={isoCountryCode} className="flex items-center gap-2">
                                     <img
                                     src={flags.svg}
                                     alt={name}
@@ -570,7 +570,7 @@ const Profile=(props)=>{
 
                                 {skills[lastGamesSelectedSkill].skillResultsParameters.map((param)=>{
                                     return(<>
-                                        <div className="w-full flex flex-row items-center gap-2 mt-1">
+                                        <div className="w-full flex flex-row items-center gap-2 mt-1" key={"position "+param}>
                                             <div className="flex-1 h-[1px] bg-white bg-opacity-70"></div>
                                             <div className="text-white text-opacity-70 font-navbar self-start text-sm">{prettyPrintParameter(param)}</div>
                                             <div className="flex-1 h-[1px] bg-white bg-opacity-70"></div>

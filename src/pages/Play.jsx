@@ -5,8 +5,8 @@ import { skills } from "../assets/data";
 import FastTyping from "../components/skills/FastTyping";
 import { getSkillLeaderboard, getUserData, getUserPersonalBest } from "../firebase";
 import Loading from "../components/Loading";
-import ReactiveClock from "../components/skills/RectiveClock";
 import { useNavigate } from "react-router-dom";
+import ReactiveClick from "../components/skills/RectiveClick";
 
 
 const Play=(props)=>{
@@ -237,7 +237,7 @@ const Play=(props)=>{
                     />}
 
                     {selectedSkill==1 && 
-                    <ReactiveClock 
+                    <ReactiveClick 
                         skillParameters={skillsParameters} 
                         user={userData} 
                         records={records}

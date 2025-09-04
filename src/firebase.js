@@ -103,7 +103,7 @@ const getUserData = async (uid)=>{
 const getSkillLeaderboard=async (skill, skillParameters, country, limitResults=1, type="all")=>{
     var records={"WR":{},"NR":{}};
     try{
-        //for each record parameter of the skill
+        //for each result parameter of the skill
         for(const r in skills[skill].skillResultsParameters){
             const resultParameter=skills[skill].skillResultsParameters[r];
 
@@ -111,13 +111,13 @@ const getSkillLeaderboard=async (skill, skillParameters, country, limitResults=1
             var WR=(type=="all" || type=="WR")?
             await getDocs(
                 query(collection(db,"games"),where("skillParameters","==",skillParametersJoinPrint(skills[skill].skillParametersPossibleValues[skillParameters])),
-                where("skill","==",skills[0].title),orderBy(resultParameter),limit(limitResults))
+                where("skill","==",skills[skill].title),orderBy(resultParameter),limit(limitResults))
             ):{docs:[]};
 
             var NR=(type=="all" || type=="NR")?
             await getDocs(
                 query(collection(db,"games"),where("skillParameters","==",skillParametersJoinPrint(skills[skill].skillParametersPossibleValues[skillParameters])),
-                where("skill","==",skills[0].title),where("userCountry","==",country),orderBy(resultParameter),limit(limitResults))
+                where("skill","==",skills[skill].title),where("userCountry","==",country),orderBy(resultParameter),limit(limitResults))
             ):{docs:[]};
 
             //filter users
@@ -287,7 +287,7 @@ const storeGameResult=async (result,skillIndex,skillParametersIndex,records,isRe
             for (const recordType in records){
                 for(const recordParameter in records[recordType]){
                     //indicates that the new game is not a personal best in the record parameter
-                    //if it is, next if will be set to true.
+                    //if it is, next it will be set to true.
                     gamePersonalBest[recordParameter]=false;
 
                     //check if this record had been surpassed by the current game to store
@@ -295,7 +295,7 @@ const storeGameResult=async (result,skillIndex,skillParametersIndex,records,isRe
                         //indicates that the new game is a personal best in the record parameter
                         gamePersonalBest[recordParameter]=true;
                         
-                        //store in the user profile that he is done a new record. This is done only if the new record is not a PB
+                        //store in the user profile that he is done a new record. This is done only if the new record is not a PB (but only NR and WR)
                         if(recordType!="PB"){
                             if(newUser.records[result.skill]==undefined){
                                 newUser.records[result.skill]=[];
@@ -318,7 +318,7 @@ const storeGameResult=async (result,skillIndex,skillParametersIndex,records,isRe
                 }
             }
 
-            //if the less recent game is not a personal best and if the user played at least 5 games, i can delete it since it is not more a useful game
+            //if the less recent game is not a personal best and if the user played at least 5 games, i can delete it since it is anymore a useful game
             if(lessRecentGame!=undefined && !Object.values(lessRecentGame.isPersonalBest).includes(true) && lastGames.length>4){
                 transactionDB.delete(doc(db,"games",lessRecentGame.gameId));
             }

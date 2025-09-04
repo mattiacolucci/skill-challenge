@@ -102,7 +102,7 @@ const Leaderboard=(props)=>{
         const resp=dbResp[0];
         const leaderboardDB=dbResp[1];
 
-        //if leaderboard is get correctly
+        //if leaderboard is got correctly
         if(resp==null || resp){
             //get user data of each user in the leaderboard, if never fetched before
             //so loop thorugh all users in the leaderboard, check if it was alread fetched, if it not, fetch it
