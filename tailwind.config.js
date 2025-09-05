@@ -40,6 +40,10 @@ export default withMT({
           '0%':{translate:"0 150px",opacity:"0"},
           '100%':{translate:"0 0",opacity:"1"}
         },
+        'fadeUpOut':{
+          '0%':{translate:"0 0",opacity:"1"},
+          '100%':{translate:"0 -150px",opacity:"0"}
+        },
         'fadeNews':{
           '0%':{translate:"0 25px",opacity:"0"},
           '15%':{translate:"0 0",opacity:"1"},
@@ -77,6 +81,7 @@ export default withMT({
       animation: {
         record: 'record 1s 1s ease-in-out forwards',
         fadeUp: 'fadeUp 0.8s ease-in-out forwards',
+        fadeUpOut: 'fadeUpOut 0.8s ease-in-out forwards',
         fadeNews: 'fadeNews 3s ease-in-out forwards',
         fadeDown: 'fadeDown 0.8s ease-in-out forwards',
         fadeLeft: 'fadeLeft 0.8s ease-in-out forwards',

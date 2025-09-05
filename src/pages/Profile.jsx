@@ -18,6 +18,10 @@ const Profile=(props)=>{
     const [isOpenUserSettings,setIsOpenUserSettings]=useState(false);
     const [showDeleteUser,setShowDeleteUser]=useState(false);
 
+    //tournament badges
+    const [tournamentBadges,setTournamentBadges]=useState([]);
+    const [showTournamentBadges,setShowTournamentBadges]=useState(false);
+
     //edit country
     const [showCountryChange,setShowCountryChange]=useState(false);
     const [newCountry,setNewCountry]=useState("");
@@ -62,6 +66,7 @@ const Profile=(props)=>{
                     setNewCountry(usrData.country);
                     setNewUsername(usrData.username);
                     setNewLanguage(usrData.language);
+                    setTournamentBadges(usrData.tournamentBadges);
 
                     setIsLoadingPosition(true);
 
@@ -331,6 +336,7 @@ const Profile=(props)=>{
 
                         <div className="h-[150px] px-2 w-[200px] flex flex-col gap-2 overflow-auto pb-3 shadow-[5px_5px_10px_-1px_rgba(29,78,216,0.4)]">
                             {Object.keys(userData.records).map((skill)=>{
+                                const skillIndex = skills.findIndex(s=>s.title==skill);
                                 return(<>
                                     <div className="w-full flex flex-row items-center gap-2 sticky top-0 bg-resultsBg">
                                         <div className="text-white text-opacity-50 font-default self-start text-sm">{skill}</div>
@@ -338,6 +344,7 @@ const Profile=(props)=>{
                                     </div>
                                         {userData.records[skill].map((record,index)=>{
                                             const recordParameterNameWithSpaces=prettyPrintParameter(record.recordParameter);
+                                            const recordMetric = skills[skillIndex].skillResultsParametersMetrics[skills[skillIndex].skillResultsParameters.indexOf(record.recordParameter)];
 
                                             return (
                                             <div className="flex flex-row items-center gap-2 ml-2" key={"record"+index+skill} title={skill+" "+record.recordType+" in "+recordParameterNameWithSpaces}>
@@ -349,7 +356,7 @@ const Profile=(props)=>{
                                                     return <div key={paramIndex+index+skill} className="w-[18px] h-[18px] leading-[18px] text-[8px] text-center bg-blue-gray-800" title={Object.keys(param)[0]}>{Object.values(param)[0]}</div>
                                                 })}
 
-                                                <div className="text-white text-[9px]">{record.value}</div>
+                                                <div className="text-white text-[9px]">{record.value+""+recordMetric}</div>
                                                 
                                                 <div className="text-white text-opacity-60 text-[8px]">{prettyPrintDate(record.date.toDate()) /*Get date as YYYY-MM-DD*/}</div>
                                             </div>
@@ -413,7 +420,7 @@ const Profile=(props)=>{
                                     return(
                                         <div className="flex flex-row items-center gap-4" key={"pesronal"+param}>
                                             <div className="text-white text-opacity-75 bg-tooltipColor rounded-sm p-1 px-2 text-sm font-navbar min-w-[100px]">{prettyPrintParameter(param)}</div>
-                                            <div className="text-white text-opacity-70 text-sm min-w-[55px] text-center bg-white bg-opacity-5 p-1 px-2 rounded-sm">{filteredPersonalBests[param].value+" "+skills[lastGamesSelectedSkill].skillResultsParametersMetrics[i]}</div>
+                                            <div className="text-white text-opacity-70 text-sm min-w-[55px] text-center bg-white bg-opacity-5 p-1 px-2 rounded-sm">{filteredPersonalBests[param].value.toFixed(3)+" "+skills[lastGamesSelectedSkill].skillResultsParametersMetrics[i]}</div>
                                             <div className="text-white text-opacity-70 text-xs">{prettyPrintDate(filteredPersonalBests[param].date)}</div>
                                         </div>
                                     )
@@ -563,7 +570,7 @@ const Profile=(props)=>{
                             </div>}
                         </>}
 
-                        <div className={"w-[200px] flex flex-col items-center gap-1 px-2 transition-all duration-300 origin-top overflow-hidden "+(isOpenUserSettings?"scale-y-0 h-[1px]":"h-[60vh]")}>
+                        <div className={"w-[200px] flex flex-col items-center gap-1 px-2 transition-all duration-300 origin-top overflow-hidden "+(isOpenUserSettings?"scale-y-0 h-[1px]":"h-max")}>
                             {!isLoadingPosition &&
                                 <>
                                 <div className="text-white text-2xl font-default">USER POSITION</div>
@@ -605,6 +612,11 @@ const Profile=(props)=>{
                             {isLoadingPosition &&
                                 <i className="fi fi-tr-loading text-[30px] text-white leading-[0] origin-center animate-rotation"></i>
                             }
+
+                            {!showTournamentBadges && <div className="relative w-[90%] h-[10vh] glass-effect mt-5 flex items-center justify-center overflow-hidden cursor-pointer" onClick={()=>setShowTournamentBadges(true)}>
+                                <div className="w-full h-full absolute bg-white bg-opacity-10 tournament-badge-path"></div>
+                                <div className="w-full text-white text-xl font-default opacity-70 text-center select-none">TOURNAMENT<br/>BADGES</div>
+                            </div>}
                         </div>
 
                         <button className="bg-darkBlue text-white p-1 px-3 font-navbar outline-none rounded-sm" onClick={()=>setIsOpenUserSettings(!isOpenUserSettings)}>
@@ -613,6 +625,24 @@ const Profile=(props)=>{
                     </div>
 
                 </div>
+
+                {showTournamentBadges && 
+                <div className="fixed z-10 top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] w-[90vw] h-[80vh] bg-whiteOverDarkBlue bg-opacity-90 border-2 border-white border-opacity-15 tournament-badge-box-shadow p-4 flex flex-row content-start flex-wrap items-center animate-fadeLeft">
+                    {tournamentBadges.length==0 && <div className="text-white text-opacity-80 text-2xl font-default">NO TOURNAMENT BADGES</div>}
+                    
+                    {tournamentBadges.length>0 && <>{tournamentBadges.map((badge,index)=>{
+                        return <div className="bg-mainBlue bg-opacity-70 flex flex-col gap-2 py-3 px-3 rounded-md animate-popUp">
+                            <i class="fi fi-sr-first-medal text-3xl"></i>
+                            <div className="text-white text-opacity-80 text-xl font-navbar">{badge.name}</div>
+                            <div className="flex gap-2 items-center">
+                                <i class="fi fi-sr-calendar text-lg"></i>
+                                <div className="text-white text-opacity-70 text-sm font-navbar">{prettyPrintDate(badge.date.toDate())}</div>
+                            </div>
+                        </div>;
+                    })}</>}
+
+                    <div className="absolute bottom-5 font-default text-xl bg-white bg-opacity-10 px-3 py-2 cursor-pointer transition-all hover:scale-[1.1]" onClick={()=>setShowTournamentBadges(false)}>CLOSE</div>
+                </div>}
 
                 <Notice ref={noticeRef} bg="bg-tooltipColor"/>
             </Container>

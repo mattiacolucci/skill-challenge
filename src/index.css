@@ -20,6 +20,14 @@
   .error-container-path{
     clip-path: polygon(0 0, 75% 0, 100% 100%, 0% 100%);
   }
+
+  .tournament-badge-path{
+    clip-path: polygon(0 0, 50% 0, 75% 100%, 0% 100%);
+  }
+
+  .tournament-badge-box-shadow{
+    box-shadow: 0px 0px 27px -4px rgba(255,255,255,0.5);
+  }
 }
 
 body {
