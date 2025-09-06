@@ -263,7 +263,7 @@ const Leaderboard=(props)=>{
     }
 
     return(
-        <Container overflowHideen={true} bg="bg-resultsBg">
+        <Container overflowHidden={true} bg="bg-resultsBg">
             <div className="w-full flex flex-row">
                 <div className="text-white text-lg font-default pl-3 basis-[30%] mt-2"><Link to="/">SKILL CHALLENGE</Link></div>
                 <div className="text-white text-2xl basis-[40%] text-center mt-3">{selectedType==0?"LEADERBOARD":"RANKING"}</div>

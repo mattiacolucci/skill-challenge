@@ -743,7 +743,23 @@ const createNewRoundGames=(pastRoundGames)=>{
     return newGames;
 }
 
+//function used to search users, given a search string
+const searchUsers = async (search)=>{
+    try{
+        const usersList=await getDocs(query(collection(db,"users"),where("username",">=",search),where("username","<=",search+"\uf8ff"),limit(10)));
+        if(usersList.empty){
+            return [true,[]];
+        }else{
+            const users=usersList.docs.map(u=>{return{username:u.data().username,profileImage:u.data().profileImage, rankingPoints:u.data().rankingPoints}});
+            return [true,users];
+        }
+    }catch(e){
+        return [false,e.message];
+    }
+}
+
 export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillLeaderboard,
     getUserPersonalBest,getUserPositionInLeaderboard,storeGameResult,updateUserCountry,updateUserUsername,updateUserLanguage,getAllUserGames,
-    deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard, getAllOpenAndProgressTournaments, subscribeToTournament, checkTournamentRequirements
+    deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard, getAllOpenAndProgressTournaments, subscribeToTournament, checkTournamentRequirements,
+    searchUsers
 };
