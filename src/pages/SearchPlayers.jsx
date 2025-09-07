@@ -79,14 +79,16 @@ const SearchPlayers=(props)=>{
             }
 
             {showResults && !loading && 
-                <div className="absolute top-[50%] translate-y-[-50%] flex flex-col items-center p-4 gap-3 animate-popUp glass-effect rounded-md">
+                <div className="absolute top-[20vh] flex flex-col items-center p-4 gap-3 animate-popUp glass-effect rounded-md">
                     {searchResults.length==0 && <div className="text-white text-2xl font-default">NO PLAYERS FOUND WITH THIS USERNAME</div>}
                     
+                    <div className="text-white text-xl font-default">PLAYERS FOR:"{player}"</div>
+
                     {searchResults.map((userData,i)=>{
-                        return <div className={"flex flex-col bg-white bg-opacity-20 gap-2 p-2 px-3 rounded-md "+(userData.showDetails?"h-max":"")} key={userData.username}>
-                            <div className="flex flex-row gap-2">
+                        return <div className={"flex flex-col bg-white bg-opacity-20 p-2 px-3 rounded-md transition-all "+(userData.showDetails?"h-max gap-2":"")} key={userData.username}>
+                            <div className="flex flex-row items-center gap-2">
                                 <UserLevel className={"!flex-row"} displayUserInfo={true} username={userData.username} userProfileImage={userData.profileImage} userLv={userData.lv} expValue={userData.exp} rankingPoints={userData.rankingPoints}/>
-                                <div className="text-white text-sm cursor-pointer ml-3" onClick={()=>showDetails(i)}>{userData.showDetails?"▲":"▼"}</div>
+                                <div className="text-white text-sm cursor-pointer ml-3 leading-[0]" onClick={()=>showDetails(i)}>{userData.showDetails?"▲":"▼"}</div>
                             </div>
 
                             {userData.showDetails && <div className="w-full h-[1px] bg-white bg-opacity-40 mt-1"></div>}
@@ -98,14 +100,14 @@ const SearchPlayers=(props)=>{
                                 </div>
                                 {Object.keys(userData.avgPerformances).map((skill)=>{
                                     return (<>
-                                    <div className="text-white text-base font-navbar px-2 py-1 bg-blue-700 bg-opacity-45 rounded-md">{skill}</div>
+                                    <div className="text-white text-base font-navbar px-2 py-1 bg-mainBlue bg-opacity-60 rounded-md">{skill}</div>
                                     <div className="w-full flex flex-row items-center gap-2">
                                         {Object.keys(userData.avgPerformances[skill]).map((param)=>{
                                             const skillIndex = skills.findIndex(s => s.title==skill);
                                             const skillPerformanceParameterIndex = skills[skillIndex].skillResultsParameters.indexOf(skills[skillIndex].skillPerformanceParameter);
                                             const skillPerformanceParameterMetric = skills[skillIndex].skillResultsParametersMetrics[skillPerformanceParameterIndex];
 
-                                            return <div className="flex flex-col items-center gap-2 bg-white bg-opacity-20 p-2 rounded-md" title={prettyPrintParameter(skills[skillIndex].skillPerformanceParameter)}>
+                                            return <div className="flex flex-col items-center gap-2 bg-white bg-opacity-20 p-2 rounded-md" title={prettyPrintParameter(skills[skillIndex].skillPerformanceParameter)} key={userData.username+skill+param}>
                                                 <div className="text-white text-sm font-navbar" title={prettyPrintParameter(skills[skillIndex].skillParameters.join("  -  "))}>{param}</div>
                                                 <div className="text-white text-base">{userData.avgPerformances[skill][param].value+""+skillPerformanceParameterMetric}</div>
                                             </div>
