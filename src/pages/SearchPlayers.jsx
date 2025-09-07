@@ -4,6 +4,9 @@ import Container from "../components/Container";
 import Navbar from "../components/Navbar";
 import { searchUsers } from "../firebase";
 import Notice from "../components/Notice";
+import UserLevel from "../components/UserLevel";
+import { skills } from "../assets/data";
+import { prettyPrintParameter } from "../utility";
 
 const SearchPlayers=(props)=>{
     const [player,setPlayer]=useState("");
@@ -28,7 +31,6 @@ const SearchPlayers=(props)=>{
 
         //check if the current search string has been already searched
         if(searchedStrings.includes(player)){
-            console.log("www")
             //if it is, set the search results to the previous searched players which match the current string
             setSearchResults(searchedPlayers.filter(p=>p.username.toLowerCase().includes(player.toLowerCase())));
             setShowResults(true);
@@ -36,9 +38,10 @@ const SearchPlayers=(props)=>{
             return;
         }
 
-        const [resp,users] = await searchUsers(player);
-        if(resp){
-            //if the search is successful, update the searched strings and players
+        var [resp,users] = await searchUsers(player);
+        if(resp){ //if the search is successful, update the searched strings and players
+            users = users.map(u=>{return{...u,showDetails:false}});
+            
             setSearchedStrings(currentSearchedStrings=>[...currentSearchedStrings,player]);
             setSearchedPlayers(currentSearchedPlayers=>[...currentSearchedPlayers,...users]);
             setSearchResults(users);
@@ -52,6 +55,12 @@ const SearchPlayers=(props)=>{
     const goBack = ()=>{
         setShowResults(false);
         setPlayer("");
+    }
+
+    const showDetails=(index)=>{
+        const searchResultsCopy=structuredClone(searchResults);
+        searchResultsCopy[index].showDetails=!searchResultsCopy[index].showDetails;
+        setSearchResults(searchResultsCopy);
     }
 
 
@@ -74,13 +83,36 @@ const SearchPlayers=(props)=>{
                     {searchResults.length==0 && <div className="text-white text-2xl font-default">NO PLAYERS FOUND WITH THIS USERNAME</div>}
                     
                     {searchResults.map((userData,i)=>{
-                        return <div className="w-full flex flex-row bg-white bg-opacity-20 items-center gap-2 p-1 px-3 rounded-md" key={userData.username}>
-                            <img className="w-[20px] h-[20px] rounded-full" src={userData.profileImage}></img>
-                            <div className="text-white text-[17px] font-navbar line-clamp-1">{userData.username}</div>
-                            <div className="ml-3 h-[22px] px-2 text-white text-[11px] leading-[22px] rounded-sm bg-mainBlue bg-opacity-60" title="Ranking Points">
-                                <i className="fi fi-sr-bahai text-blueOverBg text-[9px] !leading-0 p-0"></i>
-                                &ensp;
-                                {userData.rankingPoints}
+                        return <div className={"flex flex-col bg-white bg-opacity-20 gap-2 p-2 px-3 rounded-md "+(userData.showDetails?"h-max":"")} key={userData.username}>
+                            <div className="flex flex-row gap-2">
+                                <UserLevel className={"!flex-row"} displayUserInfo={true} username={userData.username} userProfileImage={userData.profileImage} userLv={userData.lv} expValue={userData.exp} rankingPoints={userData.rankingPoints}/>
+                                <div className="text-white text-sm cursor-pointer ml-3" onClick={()=>showDetails(i)}>{userData.showDetails?"▲":"▼"}</div>
+                            </div>
+
+                            {userData.showDetails && <div className="w-full h-[1px] bg-white bg-opacity-40 mt-1"></div>}
+                            <div className={"flex flex-col gap-2 transition-all overflow-hidden animate-popUp "+(userData.showDetails?"h-max p-2":"w-[1px] scale-y-0 h-[1px]")}>
+                                <div className="w-full flex flex-row items-center gap-2">
+                                    <div className="w-4 h-[2px] bg-white"></div>
+                                    <div className="text-white text-base font-default opacity-90 ml-2">AVG PERFORMANCES</div>
+                                    <div className="flex-1 h-[2px] bg-white"></div>
+                                </div>
+                                {Object.keys(userData.avgPerformances).map((skill)=>{
+                                    return (<>
+                                    <div className="text-white text-base font-navbar px-2 py-1 bg-blue-700 bg-opacity-45 rounded-md">{skill}</div>
+                                    <div className="w-full flex flex-row items-center gap-2">
+                                        {Object.keys(userData.avgPerformances[skill]).map((param)=>{
+                                            const skillIndex = skills.findIndex(s => s.title==skill);
+                                            const skillPerformanceParameterIndex = skills[skillIndex].skillResultsParameters.indexOf(skills[skillIndex].skillPerformanceParameter);
+                                            const skillPerformanceParameterMetric = skills[skillIndex].skillResultsParametersMetrics[skillPerformanceParameterIndex];
+
+                                            return <div className="flex flex-col items-center gap-2 bg-white bg-opacity-20 p-2 rounded-md" title={prettyPrintParameter(skills[skillIndex].skillPerformanceParameter)}>
+                                                <div className="text-white text-sm font-navbar" title={prettyPrintParameter(skills[skillIndex].skillParameters.join("  -  "))}>{param}</div>
+                                                <div className="text-white text-base">{userData.avgPerformances[skill][param].value+""+skillPerformanceParameterMetric}</div>
+                                            </div>
+                                        })}
+                                    </div>
+                                    </>)
+                                })}
                             </div>
                         </div>
                     })}

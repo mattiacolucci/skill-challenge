@@ -750,7 +750,7 @@ const searchUsers = async (search)=>{
         if(usersList.empty){
             return [true,[]];
         }else{
-            const users=usersList.docs.map(u=>{return{username:u.data().username,profileImage:u.data().profileImage, rankingPoints:u.data().rankingPoints}});
+            const users=usersList.docs.map(u=>{return{username:u.data().username,profileImage:u.data().profileImage, rankingPoints:u.data().rankingPoints, exp:u.data().exp, lv:u.data().lv, avgPerformances:u.data().avgPerformances}});
             return [true,users];
         }
     }catch(e){
