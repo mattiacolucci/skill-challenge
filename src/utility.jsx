@@ -235,7 +235,17 @@ const storeCookie=(cookieContent)=>{
     document.cookie=cookieContent;
 }
 
+//function that checks if a date is today, by converting it to UTC standard time zone
+function isToday(date) {
+    const today = new Date();
+    date=date.toDate();
+    // Convert both to UTC date strings and extract only the date part
+    const todayStr = today.toUTCString().split(' ').slice(0, 4).join(' ');
+    const dateStr = date.toUTCString().split(' ').slice(0, 4).join(' ');
+    return todayStr == dateStr;
+}
+
 export {calculateMaxValueExpByLv, calculateEarnedExpSkill, parseJwt, getCountryByIp, TooltipChartCustom, prettyPrintDate, 
     prettyPrintParameter, numberMod, calculateAvgAccumulately, calculateEstimatedAvgPerformanceBasedOnRankingPoints,
     filterUserLeaderboard, skillParametersJoinPrint, calculateCurrentRoundTournament, prettyPrintDateAndHours, calculateNumRoundsTournaments,
-    calculateGameScoreTournament, getCookie, storeCookie};
+    calculateGameScoreTournament, getCookie, storeCookie, isToday};

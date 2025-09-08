@@ -3,7 +3,7 @@ import { initializeApp } from "firebase/app";
 import { addDoc, collection, count, deleteDoc, doc, DocumentSnapshot, FieldPath, getCountFromServer, getDoc, getDocs, getFirestore, limit, orderBy, query, QuerySnapshot, runTransaction, setDoc, updateDoc, where } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, signOut } from "firebase/auth";
 import { languages, skills } from "./assets/data";
-import { calculateAvgAccumulately, calculateCurrentRoundTournament, calculateEstimatedAvgPerformanceBasedOnRankingPoints, calculateNumRoundsTournaments, filterUserLeaderboard, prettyPrintParameter, skillParametersJoinPrint } from "./utility";
+import { calculateAvgAccumulately, calculateCurrentRoundTournament, calculateEstimatedAvgPerformanceBasedOnRankingPoints, calculateNumRoundsTournaments, filterUserLeaderboard, isToday, prettyPrintParameter, skillParametersJoinPrint } from "./utility";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -750,7 +750,8 @@ const searchUsers = async (search)=>{
         if(usersList.empty){
             return [true,[]];
         }else{
-            const users=usersList.docs.map(u=>{return{username:u.data().username,profileImage:u.data().profileImage, rankingPoints:u.data().rankingPoints, exp:u.data().exp, lv:u.data().lv, avgPerformances:u.data().avgPerformances}});
+            const users=usersList.docs.map(u=>{return{username:u.data().username,profileImage:u.data().profileImage, rankingPoints:u.data().rankingPoints, 
+                exp:u.data().exp, lv:u.data().lv, avgPerformances:u.data().avgPerformances, country: u.data().country, numGames:u.data().numGames}});
             return [true,users];
         }
     }catch(e){
@@ -758,8 +759,72 @@ const searchUsers = async (search)=>{
     }
 }
 
+//function to initialize the giveItAtry daily challenge
+const initializeGiveItATry=async()=>{
+    try{
+        await runTransaction(db,async(transactionDB)=>{
+            //get the daily document that there is in the db
+            const docRef = await transactionDB.get(doc(db, "giveItATry", "daily"));
+    
+            //if the document exists
+            if(docRef.exists()){
+                const docData = docRef.data();
+    
+                //if the document is not relative to today
+                if(isToday(docData.date)){
+                    //we need to assign the championship points to the users
+                    //POINTS ASSIGNMENT
+    
+                    //we need to clear all the attempts done by the users, since a new day has started
+                    docData.attempts=[];
+    
+                    //we need to select the new skill that has to be played today
+                    //the idea is as those of a championship, so for all the days, all the skills and parameters will be explored
+                    //for ex: day 1, skill fast type param 1-4, day 2 skill fast type param 4-4, and so on, until all the skills
+                    //have been played.
+                    const skillIndex = skills.findIndex(s=>s.title==docData.skill);
+                    const skillParametersIndex = skills[skillIndex].skillParametersPossibleValues.findIndex(p=>skillParametersJoinPrint(p)==docData.skillParameters);
+
+                    //if the past day parameters were the last ones of the skill
+                    if(skillParametersIndex==skills[skillIndex].skillParametersPossibleValues.length-1){
+                        //if the past day skill was the last one
+                        if(skillIndex==skills.length-1){
+                            //then the championship ends
+                            docData.status="ended";
+                        }else{  //else, select as next skill the skill after the current one and the first parameters as new ones
+                            docData.skill=skills[skillIndex+1].title
+                            docData.skillParameters = skillParametersJoinPrint(skills[skillIndex+1].skillParametersPossibleValues[0])
+                        }
+                    }else{  //all parameters of the current skill needs to be explored and so select the next paramaters
+                        docData.skillParameters = skillParametersJoinPrint(skills[skillIndex].skillParametersPossibleValues[skillParametersIndex+1]);
+                    }
+
+                    //update the document
+                    transactionDB.update(doc(db, "giveItATry", "daily"),docData);
+                }
+            }else{  //the document does not exists and so we need to create it
+                const docData = {
+                    skill:skills[0].title,
+                    skillParameters:skillParametersJoinPrint(skills[0].skillParametersPossibleValues[0]),
+                    attempts:[],
+                    date:new Date(),
+                    status:"open"
+                };
+                
+                const newDocRef = doc(db,"giveItATry","daily");
+
+                transactionDB.set(newDocRef,docData);
+            }
+        });
+
+        return [true,"Success"];
+    }catch(e){
+        return [false,e];
+    }
+}
+
 export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillLeaderboard,
     getUserPersonalBest,getUserPositionInLeaderboard,storeGameResult,updateUserCountry,updateUserUsername,updateUserLanguage,getAllUserGames,
     deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard, getAllOpenAndProgressTournaments, subscribeToTournament, checkTournamentRequirements,
-    searchUsers
+    searchUsers,initializeGiveItATry
 };

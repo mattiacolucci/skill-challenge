@@ -12,6 +12,7 @@ import Tournament from './pages/Tournament.jsx'
 import Error from './pages/Error.jsx'
 import ReactiveClock from './components/skills/RectiveClick.jsx'
 import SearchPlayers from './pages/SearchPlayers.jsx'
+import GiveItATry from './pages/GiveItATry.jsx'
 
 createRoot(document.getElementById('root')).render(
   <HashRouter>
@@ -28,6 +29,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/tournaments" element={<PrivateRoute><Tournaments /></PrivateRoute>}/>
         <Route path="/tournament/:id" element={<PrivateRoute><Tournament /></PrivateRoute>}/>
         <Route path="/searchPlayers" element={<PrivateRoute><SearchPlayers /></PrivateRoute>}/>
+        <Route path="/giveItAtry" element={<PrivateRoute><GiveItATry /></PrivateRoute>}/>
         <Route path='/error' element={<Error/>}/>
         <Route path='/login' element={<Login/>}/>
       </Routes>

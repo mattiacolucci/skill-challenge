@@ -55,6 +55,9 @@ function App() {
               <Link to="/searchPlayers" className='w-full h-[30px] rounded-md text-left hover:bg-white hover:bg-opacity-40 transition-all duration-300 px-4 leading-[30px] text-ellipsis overflow-hidden whitespace-nowrap'>
                 SEARCH PLAYERS
               </Link>
+              <Link to="/giveItAtry" className='w-full h-[30px] rounded-md text-left hover:bg-white hover:bg-opacity-40 transition-all duration-300 px-4 leading-[30px] text-ellipsis overflow-hidden whitespace-nowrap'>
+                GIVE IT A TRY!
+              </Link>
             </div>
   
             <div className='h-auto basis-[50%] flex flex-col items-center py-3 rounded-md text-white'>

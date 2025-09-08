@@ -5,7 +5,7 @@ import Navbar from "../components/Navbar";
 import { searchUsers } from "../firebase";
 import Notice from "../components/Notice";
 import UserLevel from "../components/UserLevel";
-import { skills } from "../assets/data";
+import { countries, skills } from "../assets/data";
 import { prettyPrintParameter } from "../utility";
 
 const SearchPlayers=(props)=>{
@@ -88,11 +88,17 @@ const SearchPlayers=(props)=>{
                         return <div className={"flex flex-col bg-white bg-opacity-20 p-2 px-3 rounded-md transition-all "+(userData.showDetails?"h-max gap-2":"")} key={userData.username}>
                             <div className="flex flex-row items-center gap-2">
                                 <UserLevel className={"!flex-row"} displayUserInfo={true} username={userData.username} userProfileImage={userData.profileImage} userLv={userData.lv} expValue={userData.exp} rankingPoints={userData.rankingPoints}/>
+                                <img src={countries.filter(c=>c.isoCountryCode==userData.country)[0].flags.svg} className="h-5 w-5 rounded-full object-cover"/>
                                 <div className="text-white text-sm cursor-pointer ml-3 leading-[0]" onClick={()=>showDetails(i)}>{userData.showDetails?"▲":"▼"}</div>
                             </div>
 
                             {userData.showDetails && <div className="w-full h-[1px] bg-white bg-opacity-40 mt-1"></div>}
                             <div className={"flex flex-col gap-2 transition-all overflow-hidden animate-popUp "+(userData.showDetails?"h-max p-2":"w-[1px] scale-y-0 h-[1px]")}>
+                                <div className="w-full flex flex-row items-center gap-2">
+                                    <div className="w-4 h-[2px] bg-white"></div>
+                                    <div className="text-white text-base font-default opacity-90 ml-2">NUM GAMES <span className="font-navbar text-sm ml-2">{userData.numGames}</span></div>
+                                    <div className="flex-1 h-[2px] bg-white"></div>
+                                </div>
                                 <div className="w-full flex flex-row items-center gap-2">
                                     <div className="w-4 h-[2px] bg-white"></div>
                                     <div className="text-white text-base font-default opacity-90 ml-2">AVG PERFORMANCES</div>
