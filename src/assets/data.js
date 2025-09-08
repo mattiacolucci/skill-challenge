@@ -5840,12 +5840,12 @@ const skills = [
 		skillPerformanceParameter: "avgTime",
 		playInstructions: "In the following screen there will be a blank screen. You need to wait until a circle appears in a random position on the screen; once it appears, you need to click on it as fast as possible.\nOnce clicked, the circle will disappear and another circle will appear in another random position on the screen after a few time."
 	},
-	{
+	/*{
 		title: "TIME STOPPER",
 		icon: "fi fi-rr-time-fast",
 		description: "In this challenge there is a chronometer that will start measuring the time; You will stop it at a specific indicated time",
 		parametersDescription: "There are no parameters to set for this skill"
-	}
+	}*/
 ]
 
 //color of lines to print in charts

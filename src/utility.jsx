@@ -45,7 +45,7 @@ const calculateEarnedExpSkill=(skill,skillParameters,level,results,exp)=>{
 
             //this works as the previous formula. The less is the time of the fastestWord and the more exp it will be taken
             //if fastest circle is 0.4s it will be earned 1000 exp
-            var fastestCircleEarnedExp=Math.round(1000*(0.5/results.fastestCicle));
+            var fastestCircleEarnedExp=Math.round(1000*(0.5/results.fastestCircle));
             expString+="\nFastest Circle: +"+fastestCircleEarnedExp+" exp";
             exp+=fastestCircleEarnedExp;
             
