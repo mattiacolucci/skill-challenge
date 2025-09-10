@@ -57,6 +57,8 @@ const createUserAccount=async (country)=>{
             profileImage:auth.currentUser.photoURL,
             avgPerformances:{},
             tournamentBadges:[],
+            giveItATryTentative: 0,  //give it a try challenge tentative (value of the performance parameter of the challenge's skill)
+            giveItATrySeasonPoints: 0,  //points of the give it a try season championship
             language:language,  //language used in skills that show and uses text.
             records:{},
             rankingPoints:0,  //default ranking points of any user
@@ -759,24 +761,38 @@ const searchUsers = async (search)=>{
     }
 }
 
+//GIVE IT A TRY
+
 //function to initialize the giveItAtry daily challenge
 const initializeGiveItATry=async()=>{
     try{
         await runTransaction(db,async(transactionDB)=>{
-            //get the daily document that there is in the db
-            const docRef = await transactionDB.get(doc(db, "giveItATry", "daily"));
+            //get the info document that there is in the db and the season document
+            const docRef = await transactionDB.get(doc(db, "giveItATry", "info"));
+
+            //create a date in 5 days
+            var today = new Date();
+            // Set the time to midnight (00:00:00)
+            today.setHours(0, 0, 0, 0);
+            // Add 5 days
+            var fiveDaysFromNow = new Date(today.getTime() + (5 * 24 * 60 * 60 * 1000));
     
             //if the document exists
             if(docRef.exists()){
                 const docData = docRef.data();
     
-                //if the document is not relative to today
-                if(isToday(docData.date)){
+                //if the expiration date of thechallenge is today and the season has not ended, then the challenge ends, 
+                //the season points needs to be updated and the new challenge with new skill and parameters needs to be created
+                if(isToday(docData.expirationDate) && docData.status!="ended"){
                     //we need to assign the championship points to the users
                     //POINTS ASSIGNMENT
+
     
-                    //we need to clear all the attempts done by the users, since a new day has started
-                    docData.attempts=[];
+                    //we need to clear all the attempts done by the top 100 users, since a new day has started
+                    docData.top100Attempts=[];
+
+                    //set the new expiration date of the challenge in 5 days
+                    docData.expirationDate = fiveDaysFromNow;
     
                     //we need to select the new skill that has to be played today
                     //the idea is as those of a championship, so for all the days, all the skills and parameters will be explored
@@ -789,7 +805,7 @@ const initializeGiveItATry=async()=>{
                     if(skillParametersIndex==skills[skillIndex].skillParametersPossibleValues.length-1){
                         //if the past day skill was the last one
                         if(skillIndex==skills.length-1){
-                            //then the championship ends
+                            //then the season championship ends
                             docData.status="ended";
                         }else{  //else, select as next skill the skill after the current one and the first parameters as new ones
                             docData.skill=skills[skillIndex+1].title
@@ -800,20 +816,21 @@ const initializeGiveItATry=async()=>{
                     }
 
                     //update the document
-                    transactionDB.update(doc(db, "giveItATry", "daily"),docData);
+                    transactionDB.update(doc(db, "giveItATry", "info"),docData);
                 }
             }else{  //the document does not exists and so we need to create it
-                const docData = {
+                const infoDocData = {
                     skill:skills[0].title,
                     skillParameters:skillParametersJoinPrint(skills[0].skillParametersPossibleValues[0]),
-                    attempts:[],
-                    date:new Date(),
+                    top100Attempts:[],  //top 100 attempts made by the users on the daily challenge
+                    top100SeasonPoints:[],  //top 100 users with the highest season points
+                    expirationDate:fiveDaysFromNow,  //set the expiration date in 5 days
                     status:"open"
                 };
                 
-                const newDocRef = doc(db,"giveItATry","daily");
+                const newInfoDocRef = doc(db,"giveItATry","info");
 
-                transactionDB.set(newDocRef,docData);
+                transactionDB.set(newInfoDocRef,infoDocData);
             }
         });
 
@@ -823,8 +840,22 @@ const initializeGiveItATry=async()=>{
     }
 }
 
+//function that returns the infos of the give it a try challenge
+const getGiveItATryInfo=async()=>{
+    try{
+        const docRef = await getDoc(doc(db, "giveItATry", "info"));
+        if(docRef.exists()){
+            return [true,docRef.data()];
+        }else{
+            return [false,"document does not exists"];
+        }
+    }catch(e){
+        return [false,e.message];
+    }
+}
+
 export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillLeaderboard,
     getUserPersonalBest,getUserPositionInLeaderboard,storeGameResult,updateUserCountry,updateUserUsername,updateUserLanguage,getAllUserGames,
     deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard, getAllOpenAndProgressTournaments, subscribeToTournament, checkTournamentRequirements,
-    searchUsers,initializeGiveItATry
+    searchUsers,initializeGiveItATry,getGiveItATryInfo
 };
