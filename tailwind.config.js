@@ -76,6 +76,11 @@ export default withMT({
           '0%':{background:"rgba(220,38,38,0.2)"},
           '50%':{background:"transparent"},
           '100%':{background:"rgba(220,38,38,0.2)"}
+        },
+        'verticalLine':{
+          '0%':{top:"-100px",opacity:"1"},
+          "80%":{opacity:"1"},
+          '100%':{top:"400px",opacity:"0"}
         }
       },
       animation: {
@@ -89,7 +94,8 @@ export default withMT({
         popUpFast: 'popUp 0.3s ease-in-out forwards',
         notice: 'notice 4s ease-in-out forwards',
         rotation: 'rotation 2s infinite linear',
-        deleteAccount: 'deleteAccount 2s infinite linear'
+        deleteAccount: 'deleteAccount 2s infinite linear',
+        verticalLine: 'verticalLine 3s infinite linear'
       }
     },
   },

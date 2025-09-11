@@ -854,8 +854,27 @@ const getGiveItATryInfo=async()=>{
     }
 }
 
+//function that checks if the user can play the current challenge, or if it as already played it
+const getUserGiveItATryInfo=async(uid)=>{
+    try{
+        const docRef = await getDoc(doc(db, "users", uid));
+        if(docRef.exists()){
+            const userData={
+                tentative:docRef.data().giveItATryTentative,
+                seasonPoints:docRef.data().giveItATrySeasonPoints,
+                username:docRef.data().username
+            };
+            return [true,userData];
+        }else{
+            return [false,"User does not exists"];
+        }
+    }catch(e){
+        return [false,e.message];
+    }
+}
+
 export {auth,signInWithGooglePopup,signOutWithGoogle,createUserAccount,checkUserExists,getUserData,getSkillLeaderboard,
     getUserPersonalBest,getUserPositionInLeaderboard,storeGameResult,updateUserCountry,updateUserUsername,updateUserLanguage,getAllUserGames,
     deleteAccount,calculateNewRankingPoints, getRankingPointsLeaderboard, getAllOpenAndProgressTournaments, subscribeToTournament, checkTournamentRequirements,
-    searchUsers,initializeGiveItATry,getGiveItATryInfo
+    searchUsers,initializeGiveItATry,getGiveItATryInfo,getUserGiveItATryInfo
 };
