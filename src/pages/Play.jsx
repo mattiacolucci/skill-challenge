@@ -19,21 +19,25 @@ const Play=(props)=>{
     const [userData,setUserData]=useState({});  //state which contains user profile data and record done in the selected skill
     const [records,setRecords]=useState({});  //state which contains all NR and WR records of the selected skill
     const [isLoading,setIsLoading]=useState(false);
-    const [tournamentChecked,setTournamentChecked]=useState(false);
+    const [tournamentChecked,setTournamentChecked]=useState(false);  //says if we checked if this game is a tournament game
+    const [giveItAtryChecked,setGiveItATryChecked]=useState(false);  //says if we checked if this game is for a give it a try challenge
 
-    //check if this play session is for a tournament duel
+    //check if this play session is for a tournament duel or for a give it a try challenge
     //check is done just after the playCountDownRef is ready to be used
     useEffect(()=>{
-        const checkIfTournament=async()=>{
-            if(props.tournament!=undefined){
+        //if the game is a tournament game or give it a try game, then go to the play screen directly
+        const checkSpecialGame=async()=>{
+            if(props.tournament!=undefined || props.giveItATry){
                 //if this is a tournament duel, start the game directly
                 setTournamentChecked(true);
+                setGiveItATryChecked(true);
                 await goPlayScreen();
             }
         }
 
-        if(!tournamentChecked){
-            checkIfTournament();
+        //check if the game is a trournament game or a give it a try game
+        if(!tournamentChecked || !giveItAtryChecked){
+            checkSpecialGame();
         }
     },[playCountDownRef.current])
 
@@ -234,6 +238,7 @@ const Play=(props)=>{
                         user={userData} 
                         records={records}
                         tournament={props.tournament}
+                        giveItATry={props.giveItATry}
                     />}
 
                     {selectedSkill==1 && 
@@ -242,6 +247,7 @@ const Play=(props)=>{
                         user={userData} 
                         records={records}
                         tournament={props.tournament}
+                        giveItATry={props.giveItATry}
                     />}
                     </>
                 }

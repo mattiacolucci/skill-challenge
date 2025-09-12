@@ -5914,4 +5914,25 @@ const skillAvgPerformanceRanking = {
 	}
 }
 
-export { countries, languages, skills, lineChartColors, skillAvgPerformanceRanking };
+//this variable contains all the points that needs to be assigned t the users based on them position on the 
+//attempts ranking of the challenge
+//each element indicates the range of the user position and the relative points assigned to it
+//the ranges are intended as the first extreme included and the second extreme excluded
+const giveItATryPoints=[
+	{range:[0,0], points:100},
+	{range:[1,1], points:80},
+	{range:[2,2], points:70},
+	{range:[3,3], points:60},
+	{range:[4,4], points:55},
+	{range:[5,10], points:50},
+	{range:[10,20], points:45},
+	{range:[20,50], points:40},
+	{range:[50,100], points:30},
+	{range:[100,200], points:20},
+	{range:[200,500], points:15},
+	{range:[500,1000], points:10},
+	{range:[1000,2000], points:5},
+	{range:[2000,Infinity], points:0}
+];
+
+export { countries, languages, skills, lineChartColors, skillAvgPerformanceRanking, giveItATryPoints };

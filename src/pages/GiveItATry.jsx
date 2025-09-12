@@ -7,10 +7,11 @@ import Notice from "../components/Notice";
 import { useNavigate } from "react-router-dom";
 import { skills } from "../assets/data";
 import { prettyPrintDate, prettyPrintParameter, skillParametersJoinPrint } from "../utility";
+import Play from "./Play";
 
 const GiveItATry=(props)=>{
     const [loading,setLoading]=useState(true);
-    const [giveItAtry,setGiveItATry]=useState({});
+    const [giveItATry,setGiveItATry]=useState({});
     const [userData,setUserData]=useState({});
     const [isPlayScreen,setIsPlayScreen]=useState(false);
     const [selectedRankingType,setSelectedRankingType]=useState(0);
@@ -25,7 +26,8 @@ const GiveItATry=(props)=>{
             if(resp){
                 data.skillIndex = skills.findIndex(s=>s.title==data.skill);
                 data.skillParametersIndex = skills[data.skillIndex].skillParametersPossibleValues.findIndex(p=>skillParametersJoinPrint(p)==data.skillParameters);
-
+                data.skillParameterMetric = skills[data.skillIndex].skillResultsParametersMetrics[skills[data.skillIndex].skillResultsParameters.indexOf(skills[data.skillIndex].skillPerformanceParameter)]
+                
                 //order results in the challenge and season ranking
                 data.top100Attempts.sort((a,b)=>a.value-b.value);
                 data.top100SeasonPoints.sort((a,b)=>b.value-a.value);
@@ -48,22 +50,19 @@ const GiveItATry=(props)=>{
         fetchData();
     },[]);
 
-    const checkPlay=()=>{
+    const play=()=>{
         //if the user has not attempted this challenge
         if(userData.tentative==0){
             setIsPlayScreen(true);
-        }else{
-            setLoading(false);
-            noticeRef.current.triggerNotice(mex);
         }
     }
 
     if(isPlayScreen){
         return <Play 
             user={props.user}
-            skill={giveItAtry.skillIndex}
-            parameters={giveItAtry.skillParametersIndex}
-            giveItAtry={true}
+            skill={giveItATry.skillIndex}
+            parameters={giveItATry.skillParametersIndex}
+            giveItATry={true}
         />;
     }
     if(loading){
@@ -84,26 +83,28 @@ const GiveItATry=(props)=>{
                 </div>
 
                 <div className="w-full !flex-1 flex flex-row gap-5">
-                    <div className="relative basis-[65%] h-full flex flex-col p-4">
-                        <div className="w-[80%] py-3 px-3 text-2xl bg-white bg-opacity-[0.12] rounded-md">{giveItAtry.skill}
+                    <div className="relative basis-[65%] h-full flex flex-col p-4 animate-fadeLeft">
+                        <div className="w-[80%] py-3 px-3 text-2xl bg-white bg-opacity-[0.12] rounded-md">{giveItATry.skill}
                             <span className="font-navbar text-base ml-3">
-                                {"("}{giveItAtry.skillParameters.split("-").map((param,index)=>{
-                                    const isLastIndex=(index==skills[giveItAtry.skillIndex].skillParameters.length-1);
+                                {"("}{giveItATry.skillParameters.split("-").map((param,index)=>{
+                                    const isLastIndex=(index==skills[giveItATry.skillIndex].skillParameters.length-1);
                                     return <>
-                                        <span className="text-xs text-white text-opacity-70">{prettyPrintParameter(skills[giveItAtry.skillIndex].skillParametersLongName[index])}</span>
+                                        <span className="text-xs text-white text-opacity-70">{prettyPrintParameter(skills[giveItATry.skillIndex].skillParametersLongName[index])}</span>
                                         <span className="text-base text-white text-opacity-100">{": "+param+((!isLastIndex)?" / ":"")}</span>
                                     </>
                                     })}{")"}
                             </span></div>
-                        <div className="w-max ml-5 py-2 px-3 pr-10 text-white text-sm text-opacity-75 bg-white bg-opacity-[0.09] rounded-b-lg font-navbar">{"Ends in date: "}<span className="text-base ml-2 text-white text-opacity-100">{prettyPrintDate(giveItAtry.expirationDate.toDate())}</span></div>
+                        <div className="w-max ml-5 py-2 px-3 pr-10 text-white text-sm text-opacity-75 bg-white bg-opacity-[0.09] rounded-b-lg font-navbar">{"Ends in date: "}<span className="text-base ml-2 text-white text-opacity-100">{prettyPrintDate(giveItATry.expirationDate.toDate())}</span></div>
 
                         <div className="ml-5 mt-5 w-[75%] p-5 border-l-2 border-white text-white text-base text-wrap font-navbar">
-                            {skills[giveItAtry.skillIndex].description}<br/><br/>{skills[giveItAtry.skillIndex].playInstructions}
+                            {skills[giveItATry.skillIndex].description}<br/><br/>{skills[giveItATry.skillIndex].playInstructions}
                         </div>
 
-                        <button className="bg-whiteOverDarkBlue rounded-sm mt-5 text-lg text-white py-1 w-[150px] self-center shadow-[0px_0px_12px_3px_rgba(255,255,255,0.2)] transition-all duration-300 hover:scale-110 hover:bg-white hover:bg-opacity-30" onClick={()=>checkPlay()}>PLAY</button>
+                        {userData.tentative==0 && <button className="bg-whiteOverDarkBlue rounded-sm mt-5 text-lg text-white py-1 w-[150px] self-center shadow-[0px_0px_12px_3px_rgba(255,255,255,0.2)] transition-all duration-300 hover:scale-110 hover:bg-white hover:bg-opacity-30" onClick={()=>play()}>PLAY</button>}
 
-                        <i className={skills[giveItAtry.skillIndex].icon+" text-[300px] text-white text-opacity-[0.07] absolute z-0 right-6 bottom-[-150px]"}></i>
+                        {userData.tentative!=0 && <div className="text-white text-opacity-75 text-center font-navbar text-sm mt-5">You have already attempted this challenge<br/>Wait for the next one!</div>}
+
+                        <i className={skills[giveItATry.skillIndex].icon+" text-[300px] text-white text-opacity-[0.07] absolute z-0 right-6 bottom-[-150px]"}></i>
                     </div>
                     
                     <div className="w-[2px] h-[70%] self-center bg-white bg-opacity-30"></div>
@@ -116,7 +117,7 @@ const GiveItATry=(props)=>{
                             <div className={"absolute top-[50%] translate-y-[-50%] left-3 h-[70%] bg-mainBlue bg-opacity-40 w-[150px] rounded-md transition-all duration-500 "+((selectedRankingType==0)?"left-3":"left-[182px]")}></div>
                         </div>
 
-                        <div className="flex-1 w-full flex flex-row justify-center gap-6 p-3">
+                        <div className="flex-1 w-full flex flex-row justify-center gap-6 p-3 animate-fadeUp">
                             
                             <div className="relative h-full w-[2px] overflow-hidden">
                                 <div className="absolute w-[2px] bg-white bg-opacity-30 h-6 verticalLine-box-shadow animate-verticalLine"></div>
@@ -124,8 +125,8 @@ const GiveItATry=(props)=>{
 
                             <div className="flex flex-col items-center gap-3">
                                 <div className="h-[80%] flex flex-col items-center gap-1 overflow-y-auto px-2">
-                                    {selectedRankingType==0 && giveItAtry.top100SeasonPoints.map((user,index)=>{
-                                        return <div className="flex flex-row justify-start items-center gap-3 py-1">
+                                    {selectedRankingType==0 && giveItATry.top100SeasonPoints.map((user,index)=>{
+                                        return <div className={"flex flex-row justify-start items-center gap-3 py-1 px-3 rounded-md "+(user.username.toLowerCase()==userData.username.toLowerCase()?"bg-white bg-opacity-15":"")}>
                                             <div className={"w-min text-white text-[12px] h-[18px] leading-[18px] text-center rounded-sm px-[5px] "+
                                             (((index+1)>3)?"bg-white bg-opacity-30":(((index+1)==3)?"bg-yellow-gold bg-opacity-30":((index+1)==2)?"bg-gray-500 bg-opacity-60":"bg-yellow-gold bg-opacity-65"))}>{index+1}</div>
                                             <div className="w-[125px] line-clamp-1 text-ellipsis text-nowrap text-start text-white font-default text-sm" title={user.username}>{user.username}</div>
@@ -133,26 +134,25 @@ const GiveItATry=(props)=>{
                                         </div>
                                     })}
 
-                                    {selectedRankingType==1 && giveItAtry.top100Attempts.map((attempt,index)=>{
-                                        const metric = skills[giveItAtry.skillIndex].skillResultsParametersMetrics[skills[giveItAtry.skillIndex].skillResultsParameters.indexOf(skills[giveItAtry.skillIndex].skillPerformanceParameter)]
-                                        return <div className="flex flex-row justify-start items-center gap-3 py-1">
+                                    {selectedRankingType==1 && giveItATry.top100Attempts.map((attempt,index)=>{
+                                        return <div className={"flex flex-row justify-start items-center gap-3 py-1 px-3 rounded-md "+(attempt.username.toLowerCase()==userData.username.toLowerCase()?"bg-white bg-opacity-15":"")}>
                                             <div className={"w-min text-white text-[12px] h-[18px] leading-[18px] text-center rounded-sm px-[5px] "+
                                             (((index+1)>3)?"bg-white bg-opacity-30":(((index+1)==3)?"bg-yellow-gold bg-opacity-30":((index+1)==2)?"bg-gray-500 bg-opacity-60":"bg-yellow-gold bg-opacity-65"))}>{index+1}</div>
                                             <div className="w-[125px] line-clamp-1 text-ellipsis text-nowrap text-start text-white font-default text-sm" title={attempt.username}>{attempt.username}</div>
-                                            <div className={"w-[50px] text-end text-white font-navbar text-sm "+(index==0?"text-opacity-100":"text-opacity-75")}>
+                                            <div className={"w-[50px] text-end text-white font-navbar text-sm "+(index==0?"text-opacity-100":"text-opacity-75")} title={attempt.value.toFixed(3)+giveItATry.skillParameterMetric}>
                                                 {index==0?
-                                                attempt.value.toFixed(3)+metric:
-                                                "+"+(attempt.value-giveItAtry.top100Attempts[0].value).toFixed(3)}
+                                                attempt.value.toFixed(3)+giveItATry.skillParameterMetric:
+                                                "+"+(attempt.value-giveItATry.top100Attempts[0].value).toFixed(3)+giveItATry.skillParameterMetric}
                                             </div>
                                         </div>
                                     })}
 
-                                    {selectedRankingType==0 && giveItAtry.top100SeasonPoints.length==0 && <div className="text-white text-opacity-75 font-default text-lg">NO PLAYERS PLAYED</div>}
-                                    {selectedRankingType==1 && giveItAtry.top100Attempts.length==0 && <div className="text-white text-opacity-75 font-default text-lg">NO PLAYERS PLAYED</div>}
+                                    {selectedRankingType==0 && giveItATry.top100SeasonPoints.length==0 && <div className="text-white text-opacity-75 font-default text-lg">NO PLAYERS PLAYED</div>}
+                                    {selectedRankingType==1 && giveItATry.top100Attempts.length==0 && <div className="text-white text-opacity-75 font-default text-lg">NO PLAYERS PLAYED</div>}
                                 </div>
 
                                 {/* show user data in the ranking if not present in the top 100 */}
-                                {selectedRankingType==0 && giveItAtry.top100SeasonPoints.filter(p=>p.username.toLowerCase()==userData.username.toLowerCase()).length==0 && <>
+                                {selectedRankingType==0 && giveItATry.top100SeasonPoints.filter(p=>p.username.toLowerCase()==userData.username.toLowerCase()).length==0 && <>
                                     <div className="w-full h-[2px] bg-white bg-opacity-70"></div>
                                     <div className="flex flex-row justify-start items-center gap-3 py-1">
                                         <div className="w-[18px] h-[18px] rounded-sm bg-white bg-opacity-30"></div>
@@ -162,13 +162,13 @@ const GiveItATry=(props)=>{
                                         </div>
                                     </div></>
                                 }
-                                {selectedRankingType==1 && giveItAtry.top100Attempts.filter(p=>p.username.toLowerCase()==userData.username.toLowerCase()).length==0 && <>
+                                {selectedRankingType==1 && giveItATry.top100Attempts.filter(p=>p.username.toLowerCase()==userData.username.toLowerCase()).length==0 && <>
                                     <div className="w-full h-[2px] bg-white bg-opacity-70"></div>
                                     <div className="flex flex-row justify-start items-center gap-3 py-1">
                                         <div className="w-[18px] h-[18px] rounded-sm bg-white bg-opacity-30"></div>
                                         <div className="w-[125px] line-clamp-1 text-ellipsis text-nowrap text-start text-white font-default text-sm" title={userData.username}>{userData.username}</div>
                                         <div className="w-[50px] text-end text-white font-navbar text-sm text-opacity-75">
-                                            {userData.tentative==0?"None":"+"+(userData.tentative-giveItAtry.top100Attempts[0].value).toFixed(3)}
+                                            {userData.tentative==0?"None":"+"+(userData.tentative-giveItATry.top100Attempts[0].value).toFixed(3)+giveItATry.skillParameterMetric}
                                         </div>
                                     </div></>
                                 }

@@ -176,7 +176,7 @@ const ReactiveClick=(props)=>{
                 skill:skillName, user:props.user.uid, totTime:parseFloat(results.totTime.toFixed(3)),
                 avgTime:parseFloat(results.avgTime.toFixed(3)), fastestCircle:parseFloat(results.fastestCircle.toFixed(3)), 
                 date: new Date(), skillParameters:skillParametersJoinPrint(skillParameters)
-            },skillIndex,props.skillParameters,props.records,results.distancesFromRecords,newLevel,newExp,newRankingPoints,props.tournament);
+            },skillIndex,props.skillParameters,props.records,results.distancesFromRecords,newLevel,newExp,newRankingPoints,props.tournament,props.giveItATry);
             
             if(resp){
                 //go to results screen

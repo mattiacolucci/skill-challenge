@@ -2,7 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { addDoc, collection, count, deleteDoc, doc, DocumentSnapshot, FieldPath, getCountFromServer, getDoc, getDocs, getFirestore, limit, orderBy, query, QuerySnapshot, runTransaction, setDoc, updateDoc, where } from "firebase/firestore";
 import { getAuth, GoogleAuthProvider, signInWithEmailAndPassword, signInWithPopup, signOut } from "firebase/auth";
-import { languages, skills } from "./assets/data";
+import { giveItATryPoints, languages, skills } from "./assets/data";
 import { calculateAvgAccumulately, calculateCurrentRoundTournament, calculateEstimatedAvgPerformanceBasedOnRankingPoints, calculateNumRoundsTournaments, filterUserLeaderboard, isToday, prettyPrintParameter, skillParametersJoinPrint } from "./utility";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -255,9 +255,10 @@ const getLastGamesUser=async(skill,skillParameters,user,numGames)=>{
  * @param {*} records indicates current WR, NR and PB of the skill played
  * @param {*} isRecord indicates if the game to store is a record or not. Contains all distances from current records
  * @param {*} tournament indicates if the game to store is a tournament duel and contains the info about the relative tournament, game and duel
+ * @param {*} giveItATry indicates if the game to store is a give it a try duel
  * @returns 
  */
-const storeGameResult=async (result,skillIndex,skillParametersIndex,records,isRecord,newLv,newExp,newRankingPoints,tournament)=>{
+const storeGameResult=async (result,skillIndex,skillParametersIndex,records,isRecord,newLv,newExp,newRankingPoints,tournament,giveItATry)=>{
     try{
         await runTransaction(db,async(transactionDB)=>{
             const skillParameters=skills[skillIndex].skillParametersPossibleValues[skillParametersIndex];
@@ -273,6 +274,12 @@ const storeGameResult=async (result,skillIndex,skillParametersIndex,records,isRe
             var tournamentDoc;
             if(tournament!=undefined){
                 tournamentDoc = (await transactionDB.get(doc(db,"tournaments",tournament.id))).data();
+            }
+
+            //get give it a try info document if the game was for a give it a try challenge
+            var giveItATryDoc;
+            if(giveItATry){
+                giveItATryDoc = (await transactionDB.get(doc(db,"giveItATry","info"))).data()
             }
 
             //json which indicates the records done by the new game
@@ -354,9 +361,6 @@ const storeGameResult=async (result,skillIndex,skillParametersIndex,records,isRe
                 newUser.avgPerformances[result.skill][avgPerformanceSkillParametersKey].numGames=newUser.avgPerformances[result.skill][avgPerformanceSkillParametersKey].numGames+1;
             }
 
-            //update user profile
-            transactionDB.update(doc(db,"users",auth.currentUser.uid),newUser);
-
             //save the current game
             await addDoc(collection(db,"games"),{...result,isPersonalBest:gamePersonalBest,userCountry:newUser.country});
 
@@ -407,6 +411,40 @@ const storeGameResult=async (result,skillIndex,skillParametersIndex,records,isRe
                 //update tournament on db
                 transactionDB.update(doc(db,"tournaments",tournament.id),tournamentDoc);
             }
+
+            //update the give it a try information if this game was for a give it a try challenge
+            if(giveItATry){
+                //tentative as the performance parameter of the conducted game
+                const tentative = result[skills[skillIndex].skillPerformanceParameter];
+
+                //set user tentative to the performance parameter
+                newUser.giveItATryTentative=tentative;
+
+                //sort top 100 attempts
+                giveItATryDoc.top100Attempts.sort((a,b)=>a.value-b.value);
+
+                //check if already 100 attempts have been stored
+                if(giveItATryDoc.top100Attempts.length==100){
+                    //check if the tentative is in the top 100
+                    if(giveItATryDoc.top100Attempts[giveItATryDoc.top100Attempts.length-1]>tentative){
+                        //remove the last one
+                        giveItATryDoc.top100Attempts.splice(giveItATryDoc.top100Attempts.length-1,1);
+
+                        //insert the current user
+                        giveItATryDoc.top100Attempts.push({username:newUser.username,value:tentative});
+                    }
+                }else{  //not 100 attemps have been already stored, so, store this attempt
+                    //insert the current user
+                    giveItATryDoc.top100Attempts.push({username:newUser.username,value:tentative});
+                }
+
+                //update give it a try info
+                transactionDB.update(doc(db,"giveItATry","info"),giveItATryDoc);
+            }
+
+            //update user profile
+            transactionDB.update(doc(db,"users",auth.currentUser.uid),newUser);
+
         });
 
         return [true,"Success"];
@@ -771,11 +809,11 @@ const initializeGiveItATry=async()=>{
             const docRef = await transactionDB.get(doc(db, "giveItATry", "info"));
 
             //create a date in 5 days
-            var today = new Date();
-            // Set the time to midnight (00:00:00)
-            today.setHours(0, 0, 0, 0);
+            var fiveDaysFromNow = new Date();
+            // Set the time to 3 am (03:00:00)
+            fiveDaysFromNow.setHours(3, 0, 0, 0);
             // Add 5 days
-            var fiveDaysFromNow = new Date(today.getTime() + (5 * 24 * 60 * 60 * 1000));
+            fiveDaysFromNow.setDate(fiveDaysFromNow.getDate() + 5); // move 5 days forward
     
             //if the document exists
             if(docRef.exists()){
@@ -784,10 +822,58 @@ const initializeGiveItATry=async()=>{
                 //if the expiration date of thechallenge is today and the season has not ended, then the challenge ends, 
                 //the season points needs to be updated and the new challenge with new skill and parameters needs to be created
                 if(isToday(docData.expirationDate) && docData.status!="ended"){
-                    //we need to assign the championship points to the users
-                    //POINTS ASSIGNMENT
+                    //SEASON POINTS ASSIGNMENT
+                    //fetch all the users that played the challenge, so those with tenative != 0
+                    var users=(await getDocs(
+                        query(collection(db,"users"),where("giveItATryTentative","!=",0))
+                    )).docs.map(u=>{return{...u.data(),id:u.id}});
 
-    
+                    //build the ranking of all the users by tentatives
+                    users.sort((a,b)=>a.giveItATryTentative-b.giveItATryTentative);
+
+                    //get the learned season points based on the position in the tentative ranking
+                    const learnedRankingPoints=[];
+                    for(const p in giveItATryPoints){
+                        var startRange=giveItATryPoints[p].range[0];
+                        var endRange=giveItATryPoints[p].range[1];
+                        var end=false;
+                        //if the second extreme of the range overflows the num of users that played the challenge
+                        //then we need to calculate points only up to the number of users that played
+                        if(endRange>(users.length-1)){
+                            endRange=users.length-1;
+                            end=true;  //set end to true since this is the last range of points in which we are interested
+                        }
+
+                        const numOfPositions = endRange-startRange+1;
+                        console.log(numOfPositions);
+                        learnedRankingPoints.push(...Array(numOfPositions).fill(giveItATryPoints[p].points));
+
+                        if(end){break};  //used to break earlier the cycle once obtained a number of points eaquals to the number of users that played the challenge
+                    }
+
+                    //assign the new season points to all the users
+                    for(const position in users){
+                        users[position].giveItATrySeasonPoints+=learnedRankingPoints[position];
+                        users[position].giveItATryTentative=0;   //zero the tentative since a we challenge is going to start
+
+                        //update the user
+                        transactionDB.update(doc(db, "users", users[position].id),users[position]);
+                    }
+
+                    //update the top100seasonpoints ranking
+                    //first we create a unique ranking using the top100 current and all the users that played this challenge
+                    //we then sort the results and cut at the top 100
+                    var top100 = users.map(u=>{return{username:u.username,value:u.giveItATrySeasonPoints}});
+                    for(const p in docData.top100SeasonPoints){
+                        if(top100.findIndex(u=>u.username.toLowerCase()==docData.top100SeasonPoints[p].username.toLowerCase())==-1){  //if the user has not been already added to the ranking
+                            top100.push(docData.top100SeasonPoints[p]);
+                        }
+                    }
+                    top100.sort((a,b)=>b.value-a.value);
+                    docData.top100SeasonPoints=top100.slice(0,100);
+
+
+                    //SELECT NEXT CHALLENGE SKILL AND PARAMETERS
                     //we need to clear all the attempts done by the top 100 users, since a new day has started
                     docData.top100Attempts=[];
 
