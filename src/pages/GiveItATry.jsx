@@ -84,6 +84,7 @@ const GiveItATry=(props)=>{
 
                 <div className="w-full !flex-1 flex flex-row gap-5">
                     <div className="relative basis-[65%] h-full flex flex-col p-4 animate-fadeLeft">
+                        {giveItATry.status=="ended" && <>
                         <div className="w-[80%] py-3 px-3 text-2xl bg-white bg-opacity-[0.12] rounded-md">{giveItATry.skill}
                             <span className="font-navbar text-base ml-3">
                                 {"("}{giveItATry.skillParameters.split("-").map((param,index)=>{
@@ -105,6 +106,9 @@ const GiveItATry=(props)=>{
                         {userData.tentative!=0 && <div className="text-white text-opacity-75 text-center font-navbar text-sm mt-5">You have already attempted this challenge<br/>Wait for the next one!</div>}
 
                         <i className={skills[giveItATry.skillIndex].icon+" text-[300px] text-white text-opacity-[0.07] absolute z-0 right-6 bottom-[-150px]"}></i>
+                        </>}
+
+                        {giveItATry.status!="ended" && <div className="text-white font-navbar text-3xl text-center opacity-75">The season has ended<br/>Wait for the next one!</div>}
                     </div>
                     
                     <div className="w-[2px] h-[70%] self-center bg-white bg-opacity-30"></div>
